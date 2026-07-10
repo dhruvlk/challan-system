@@ -250,10 +250,10 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   termsTitle: {
-    fontSize: 15,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: '#343c5b',
-    marginLeft: 20,
+    marginLeft: 5,
     marginBottom: 2,
   },
   termsFooterBox: {
@@ -261,20 +261,24 @@ const styles = StyleSheet.create({
     paddingTop: 5,
     paddingBottom: 5,
     paddingHorizontal: 20,
-    height: 80,
+    height: 90,
   },
   termBullet: {
     flexDirection: 'row',
-    marginBottom: 2,
+    alignItems: 'flex-start',
   },
   bulletPoint: {
     width: 12,
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.1,
+    paddingTop: 1,
   },
   termText: {
     fontSize: 9,
     flex: 1,
+    lineHeight: 1.1,
+    paddingBottom: 0.5,
   },
 });
 
@@ -536,7 +540,10 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
             <Text style={styles.termsTitle}>TERMS:</Text>
             <View style={styles.termsFooterBox}>
               {terms.map((term, i) => (
-                <View key={i} style={styles.termBullet}>
+                <View
+                  key={i}
+                  style={[styles.termBullet, ...(i < terms.length - 1 ? [{ marginBottom: 1 }] : [])]}
+                >
                   <Text style={styles.bulletPoint}>•</Text>
                   <Text style={styles.termText}>{term}</Text>
                 </View>
