@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { AuthGuard } from "@/components/auth/AuthGuard"
 import { CompanyProvider } from "@/components/company-provider"
+import { PageTransition } from "@/components/common/motion"
 
 export default function DashboardLayout({
   children,
@@ -11,12 +12,14 @@ export default function DashboardLayout({
   return (
     <AuthGuard>
       <CompanyProvider>
-        <div className="flex min-h-screen flex-col md:flex-row bg-muted/20">
+        <div className="flex min-h-screen bg-background">
           <Sidebar />
-          <div className="flex flex-1 flex-col w-full min-w-0">
+          <div className="flex min-w-0 flex-1 flex-col">
             <Header />
-            <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-              {children}
+            <main className="flex-1 overflow-auto">
+              <PageTransition className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-6 lg:px-8">
+                {children}
+              </PageTransition>
             </main>
           </div>
         </div>

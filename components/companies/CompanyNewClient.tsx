@@ -4,13 +4,14 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { PageHeader } from "@/components/common/PageHeader"
 import { addCompany, uploadCompanyLogo } from "@/services/companies.service"
 
 export default function CompanyNewClient() {
@@ -75,13 +76,14 @@ export default function CompanyNewClient() {
   }
 
   return (
-    <div className="container mx-auto py-10 max-w-4xl">
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Organization"
+        title="Add company"
+        description="Enter company, bank, and terms details used on challan PDFs."
+      />
       <Card>
-        <CardHeader>
-          <CardTitle>Add New Company</CardTitle>
-          <CardDescription>Enter company, bank, and terms details used on challan PDFs.</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-4">
               <h3 className="font-semibold">Basic Information</h3>

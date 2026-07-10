@@ -21,6 +21,7 @@ import { addChallan, updateChallan, generateChallanNumber } from "@/services/cha
 import { useAuth } from "@/hooks/useAuth"
 import { Customer, Challan, ChallanItem, ChallanStatus } from "@/types"
 import { calculateDueDate } from "@/utils/calculateDueDate"
+import { PageHeader } from "@/components/common/PageHeader"
 import { format } from "date-fns"
 
 const itemSchema = z.object({
@@ -234,23 +235,26 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{isEditMode ? "Edit Challan" : "Create Challan"}</h2>
-          <p className="text-muted-foreground">
-            {isEditMode ? "Update the details of this delivery challan." : `Create a new delivery challan for ${selectedCompany.name}`}
-          </p>
-        </div>
-        <div className="flex gap-4">
-          <Button type="button" variant="outline" onClick={() => router.back()}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditMode ? "Update Challan" : "Create Challan"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Challans"
+        title={isEditMode ? "Edit challan" : "Create challan"}
+        description={
+          isEditMode
+            ? "Update the details of this delivery challan."
+            : `Create a new delivery challan for ${selectedCompany.name}`
+        }
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditMode ? "Update challan" : "Create challan"}
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

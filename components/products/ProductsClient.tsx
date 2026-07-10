@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { ProductFormDialog } from "@/components/products/product-form-dialog"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, Package } from "lucide-react"
 import { getProducts, addProduct, updateProduct, deleteProduct } from "@/services/products.service"
 import { Product } from "@/types"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { DataTable } from "@/components/tables/DataTable"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
+import { EmptyState } from "@/components/common/EmptyState"
 
 export default function ProductsClient() {
   const { selectedCompany } = useCompany()
@@ -61,9 +62,11 @@ export default function ProductsClient() {
 
   if (!selectedCompany) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-muted-foreground">Please select a company first.</p>
-      </div>
+      <EmptyState
+        icon={Package}
+        title="Select a company"
+        description="Choose a company from the header to manage products."
+      />
     )
   }
 
@@ -94,6 +97,7 @@ export default function ProductsClient() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Catalog"
         title="Products"
         description={`Manage product master for ${selectedCompany.name}`}
         action={<ProductFormDialog onProductSaved={handleProductSaved} />}

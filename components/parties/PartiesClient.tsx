@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { PartyFormDialog } from "@/components/parties/party-form-dialog"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, Users } from "lucide-react"
 import {
   getCustomersPaginated,
   addCustomer,
@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { DataTable } from "@/components/tables/DataTable"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
+import { EmptyState } from "@/components/common/EmptyState"
 
 export default function PartiesClient() {
   const { selectedCompany } = useCompany()
@@ -79,9 +80,11 @@ export default function PartiesClient() {
 
   if (!selectedCompany) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-muted-foreground">Please select a company first.</p>
-      </div>
+      <EmptyState
+        icon={Users}
+        title="Select a company"
+        description="Choose a company from the header to manage customers."
+      />
     )
   }
 
@@ -117,6 +120,7 @@ export default function PartiesClient() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Directory"
         title="Customers"
         description={`Manage customers for ${selectedCompany.name}`}
         action={<PartyFormDialog onPartyAdded={handlePartyAddedOrUpdated} />}

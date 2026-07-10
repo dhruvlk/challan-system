@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Building2, PlusCircle, Pencil } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/common/PageHeader"
+import { EmptyState } from "@/components/common/EmptyState"
+import { MotionStagger, MotionStaggerItem } from "@/components/common/motion"
+import { cn } from "@/lib/utils"
 
 export default function CompaniesClient() {
   const { companies, selectedCompany, setSelectedCompany } = useCompany()
@@ -14,61 +17,73 @@ export default function CompaniesClient() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Organization"
         title="Companies"
         description="Manage your companies and their details."
         action={
-          <Button onClick={() => router.push('/companies/new')}>
+          <Button onClick={() => router.push("/companies/new")}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Company
+            Add company
           </Button>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {companies.map((company) => (
-          <Card 
-            key={company.id} 
-            className={`cursor-pointer transition-all hover:border-primary/50 ${selectedCompany?.id === company.id ? 'border-primary ring-1 ring-primary' : ''}`}
-            onClick={() => setSelectedCompany(company)}
-          >
-            <CardHeader className="flex flex-row items-start justify-between pb-2">
-              <div className="space-y-1">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  {company.name}
-                </CardTitle>
-                <CardDescription className="line-clamp-1">
-                  {company.gst_number ? `GST: ${company.gst_number}` : 'No GST provided'}
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {
-                e.stopPropagation()
-                router.push(`/companies/${company.id}/edit`)
-              }}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground space-y-1 mt-2">
-                <p className="line-clamp-1">{company.email || 'No email'}</p>
-                <p className="line-clamp-1">{company.phone || 'No phone'}</p>
-                <p className="line-clamp-2 mt-2">{company.address || 'No address'}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {companies.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center p-8 text-center border rounded-lg border-dashed">
-            <Building2 className="h-10 w-10 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold">No companies found</h3>
-            <p className="text-sm text-muted-foreground mb-4">Get started by creating your first company.</p>
-            <Button onClick={() => router.push('/companies/new')}>
+      {companies.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title="No companies yet"
+          description="Create your first company to start managing challans, customers, and products."
+          action={
+            <Button onClick={() => router.push("/companies/new")}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Create Company
+              Create company
             </Button>
-          </div>
-        )}
-      </div>
+          }
+        />
+      ) : (
+        <MotionStagger className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {companies.map((company) => (
+            <MotionStaggerItem key={company.id}>
+              <Card
+                className={cn(
+                  "cursor-pointer transition-all duration-200 hover:shadow-elevated",
+                  selectedCompany?.id === company.id && "border-primary/40 ring-1 ring-primary/20"
+                )}
+                onClick={() => setSelectedCompany(company)}
+              >
+                <CardHeader className="flex flex-row items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="truncate">{company.name}</span>
+                    </CardTitle>
+                    <CardDescription className="line-clamp-1">
+                      {company.gst_number ? `GST: ${company.gst_number}` : "No GST provided"}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/companies/${company.id}/edit`)
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm text-muted-foreground">
+                  <p className="line-clamp-1">{company.email || "No email"}</p>
+                  <p className="line-clamp-1">{company.phone || "No phone"}</p>
+                  <p className="line-clamp-2 pt-1">{company.address || "No address"}</p>
+                </CardContent>
+              </Card>
+            </MotionStaggerItem>
+          ))}
+        </MotionStagger>
+      )}
     </div>
   )
 }

@@ -31,12 +31,12 @@ export function ConfirmationDialog({
 }: ConfirmationDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg">{title}</DialogTitle>
+          <DialogDescription className="text-sm leading-relaxed">{description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="pt-4">
+        <DialogFooter className="gap-2 pt-2 sm:justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {cancelText}
           </Button>

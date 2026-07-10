@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
 import { Badge } from "@/components/ui/badge"
-import { PlusCircle, Eye, Printer, Edit, Copy, Trash2 } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { EmptyState } from "@/components/common/EmptyState"
+import { PlusCircle, Eye, Printer, Edit, Copy, Trash2, Building2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
   getChallans,
@@ -95,20 +97,22 @@ export default function ChallansClient() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Draft": return "bg-gray-500"
-      case "Pending": return "bg-amber-500"
-      case "Delivered": return "bg-emerald-500"
-      case "Returned": return "bg-blue-500"
-      case "Cancelled": return "bg-red-500"
-      default: return "bg-gray-500"
+      case "Draft": return "bg-muted text-muted-foreground"
+      case "Pending": return "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+      case "Delivered": return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      case "Returned": return "bg-primary/10 text-primary"
+      case "Cancelled": return "bg-destructive/10 text-destructive"
+      default: return "bg-muted text-muted-foreground"
     }
   }
 
   if (!selectedCompany) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-muted-foreground">Please select a company first.</p>
-      </div>
+      <EmptyState
+        icon={Building2}
+        title="Select a company"
+        description="Choose a company from the header to view and manage challans."
+      />
     )
   }
 
@@ -121,7 +125,7 @@ export default function ChallansClient() {
     {
       header: "Status",
       cell: (c: Challan) => (
-        <Badge className={`${getStatusColor(c.status)} text-white`}>{c.status}</Badge>
+        <Badge variant="secondary" className={getStatusColor(c.status)}>{c.status}</Badge>
       ),
     },
     {
@@ -150,6 +154,7 @@ export default function ChallansClient() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Operations"
         title="Challans"
         description={`Manage delivery challans for ${selectedCompany.name}`}
         action={
@@ -160,32 +165,34 @@ export default function ChallansClient() {
         }
       />
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-        <Input placeholder="Search challan, customer, GST, broker..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(!v || v === "all" ? "" : v as ChallanStatus)}>
-          <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="Draft">Draft</SelectItem>
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Delivered">Delivered</SelectItem>
-            <SelectItem value="Returned">Returned</SelectItem>
-            <SelectItem value="Cancelled">Cancelled</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={customerFilter || "all"} onValueChange={(v) => setCustomerFilter(!v || v === "all" ? "" : v)}>
-          <SelectTrigger><SelectValue placeholder="Customer" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Customers</SelectItem>
-            {customers.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-        <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-      </div>
-      <Input placeholder="Filter by broker" value={brokerFilter} onChange={(e) => setBrokerFilter(e.target.value)} className="max-w-sm" />
+      <Card>
+        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="xl:col-span-2" />
+          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(!v || v === "all" ? "" : v as ChallanStatus)}>
+            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Delivered">Delivered</SelectItem>
+              <SelectItem value="Returned">Returned</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={customerFilter || "all"} onValueChange={(v) => setCustomerFilter(!v || v === "all" ? "" : v)}>
+            <SelectTrigger><SelectValue placeholder="Customer" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All customers</SelectItem>
+              {customers.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <Input placeholder="Broker" value={brokerFilter} onChange={(e) => setBrokerFilter(e.target.value)} className="xl:col-span-2" />
+        </CardContent>
+      </Card>
 
       <DataTable
         data={challans}
