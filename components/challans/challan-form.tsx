@@ -1,0 +1,484 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useForm, useFieldArray } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { useCompany } from "@/components/company-provider"
+import { numberToWords } from "@/lib/number-to-words"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { toast } from "sonner"
+import { Loader2, Plus, Trash2 } from "lucide-react"
+import { getParties } from "@/services/parties.service"
+import { addChallan, updateChallan } from "@/services/challans.service"
+import { Party, Challan, ChallanItem, ChallanStatus } from "@/types"
+import { calculateDueDate } from "@/utils/calculateDueDate"
+import { format } from "date-fns"
+
+const itemSchema = z.object({
+  quality: z.string().optional(),
+  fabric_name: z.string().optional(),
+  color: z.string().optional(),
+  design: z.string().optional(),
+  roll_number: z.string().optional(),
+  lot_number: z.string().optional(),
+  meter: z.coerce.number().min(0).optional(),
+  weight: z.coerce.number().min(0).optional(),
+  rate: z.coerce.number().min(0).optional(),
+  amount: z.coerce.number().min(0).optional(),
+  remarks: z.string().optional(),
+})
+
+const challanSchema = z.object({
+  challan_number: z.string().min(1, "Challan number is required"),
+  bill_number: z.string().optional(),
+  date: z.string().min(1, "Date is required"),
+  party_id: z.string().min(1, "Party is required"),
+  vehicle_number: z.string().optional(),
+  driver_name: z.string().optional(),
+  driver_mobile: z.string().optional(),
+  delivery_location: z.string().optional(),
+  broker: z.string().optional(),
+  payment_within_value: z.coerce.number().min(1, "Must be greater than 0"),
+  payment_within_unit: z.string().min(1, "Unit is required"),
+  due_date: z.string().min(1, "Due Date is required"),
+  amount_in_words: z.string().optional(),
+  notes: z.string().optional(),
+  status: z.string(),
+  items: z.array(itemSchema).min(1, "At least one item is required")
+})
+
+export function ChallanForm({ initialData }: { initialData?: Challan }) {
+  const router = useRouter()
+  const { selectedCompany } = useCompany()
+  const [parties, setParties] = useState<Party[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDueDateManuallyEdited, setIsDueDateManuallyEdited] = useState(false)
+  const isEditMode = !!initialData;
+
+  const form = useForm<z.infer<typeof challanSchema>>({
+    resolver: zodResolver(challanSchema) as any,
+    defaultValues: initialData ? {
+      challan_number: initialData.challan_number,
+      bill_number: initialData.bill_number || "",
+      date: initialData.date,
+      party_id: initialData.party_id,
+      vehicle_number: initialData.vehicle_number || "",
+      driver_name: initialData.driver_name || "",
+      driver_mobile: initialData.driver_mobile || "",
+      delivery_location: initialData.delivery_location || "",
+      broker: initialData.broker || "",
+      payment_within_value: initialData.payment_within_value || 45,
+      payment_within_unit: initialData.payment_within_unit || "Days",
+      due_date: initialData.due_date || "",
+      amount_in_words: initialData.amount_in_words || "",
+      notes: initialData.notes || "",
+      status: initialData.status,
+      items: initialData.items && initialData.items.length > 0 ? initialData.items.map(i => ({
+        quality: i.quality || "",
+        fabric_name: i.fabric_name || "",
+        color: i.color || "",
+        design: i.design || "",
+        roll_number: i.roll_number || "",
+        lot_number: i.lot_number || "",
+        meter: i.meter || 0,
+        weight: i.weight || 0,
+        rate: i.rate || 0,
+        amount: i.amount || 0,
+        remarks: i.remarks || ""
+      })) : [{ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 }]
+    } : {
+      challan_number: `CHL-${new Date().getTime().toString().slice(-6)}`,
+      bill_number: "",
+      date: new Date().toISOString().split('T')[0],
+      broker: "",
+      payment_within_value: 45,
+      payment_within_unit: "Days",
+      due_date: "",
+      amount_in_words: "",
+      status: 'Draft',
+      items: [{ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 }]
+    }
+  })
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items"
+  })
+
+  // Watch items to calculate amount
+  const items = form.watch("items")
+  const challanDate = form.watch("date")
+  const paymentValue = form.watch("payment_within_value")
+  const paymentUnit = form.watch("payment_within_unit")
+  
+  const totals = items.reduce((acc: { rolls: number, meter: number, weight: number, amount: number }, item) => ({
+    rolls: acc.rolls + 1,
+    meter: acc.meter + (Number(item.meter) || 0),
+    weight: acc.weight + (Number(item.weight) || 0),
+    amount: acc.amount + (Number(item.amount) || 0)
+  }), { rolls: 0, meter: 0, weight: 0, amount: 0 })
+
+  useEffect(() => {
+    async function fetchParties() {
+      if (selectedCompany) {
+        const storedParties = await getParties()
+        setParties(storedParties.filter(p => p.company_id === selectedCompany.id))
+      }
+    }
+    fetchParties()
+  }, [selectedCompany])
+
+  useEffect(() => {
+    form.setValue("amount_in_words", numberToWords(totals.amount))
+  }, [totals.amount, form])
+
+  useEffect(() => {
+    if (isEditMode && initialData) {
+      const expectedDueDate = calculateDueDate(initialData.date, initialData.payment_within_value, initialData.payment_within_unit)
+      if (expectedDueDate && initialData.due_date) {
+        const expectedFormatted = format(expectedDueDate, 'yyyy-MM-dd')
+        if (expectedFormatted !== initialData.due_date) {
+          setIsDueDateManuallyEdited(true)
+        }
+      }
+    }
+  }, [isEditMode, initialData])
+
+  useEffect(() => {
+    if (isDueDateManuallyEdited) return
+    
+    const newDueDate = calculateDueDate(challanDate, paymentValue, paymentUnit)
+    if (newDueDate) {
+      form.setValue("due_date", format(newDueDate, 'yyyy-MM-dd'), { shouldValidate: true })
+    }
+  }, [challanDate, paymentValue, paymentUnit, isDueDateManuallyEdited, form])
+
+  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsDueDateManuallyEdited(true)
+    form.setValue("due_date", e.target.value, { shouldValidate: true })
+  }
+
+  const onSubmit = async (values: z.infer<typeof challanSchema>) => {
+    if (!selectedCompany) return
+    setIsSubmitting(true)
+    
+    try {
+      const party = parties.find(p => p.id === values.party_id)
+      
+      const newChallan: Challan = {
+        id: initialData ? initialData.id : `cha-${Date.now()}`,
+        company_id: selectedCompany.id,
+        challan_number: values.challan_number,
+        bill_number: values.bill_number,
+        date: values.date,
+        party_id: values.party_id,
+        vehicle_number: values.vehicle_number,
+        driver_name: values.driver_name,
+        driver_mobile: values.driver_mobile,
+        delivery_location: values.delivery_location,
+        broker: values.broker,
+        payment_within_value: values.payment_within_value,
+        payment_within_unit: values.payment_within_unit,
+        due_date: values.due_date,
+        amount_in_words: values.amount_in_words,
+        notes: values.notes,
+        created_at: initialData?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: values.status as ChallanStatus,
+        party: party,
+        items: values.items.map((item, index) => ({
+          ...item,
+          id: isEditMode && initialData.items?.[index]?.id ? initialData.items[index].id : `item-new-${Date.now()}-${index}`,
+          challan_id: isEditMode ? initialData.id : `chl-new-${Date.now()}`
+        } as ChallanItem))
+      }
+      
+      if (initialData) {
+        await updateChallan(newChallan)
+        toast.success("Challan updated successfully!")
+      } else {
+        await addChallan(newChallan)
+        toast.success("Challan created successfully!")
+      }
+      
+      router.push("/challans")
+      router.refresh()
+    } catch (error) {
+      toast.error("An error occurred while saving the challan.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (!selectedCompany) return null
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">{isEditMode ? "Edit Challan" : "Create Challan"}</h2>
+          <p className="text-muted-foreground">
+            {isEditMode ? "Update the details of this delivery challan." : `Create a new delivery challan for ${selectedCompany.name}`}
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEditMode ? "Update Challan" : "Create Challan"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Challan Number *</Label>
+                <Input {...form.register("challan_number")} readOnly={isEditMode} className={isEditMode ? "bg-muted" : ""} />
+                {form.formState.errors.challan_number && (
+                  <p className="text-xs text-red-500">{form.formState.errors.challan_number.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Date *</Label>
+                <Input type="date" {...form.register("date")} />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Party *</Label>
+                <Select onValueChange={(val: string | null) => { if (val) form.setValue("party_id", val) }} defaultValue={form.getValues("party_id")}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a party" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {parties.map(party => (
+                      <SelectItem key={party.id} value={party.id}>{party.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.party_id && (
+                  <p className="text-xs text-red-500">{form.formState.errors.party_id.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Bill Number</Label>
+                <Input {...form.register("bill_number")} placeholder="Leave blank if N/A" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select onValueChange={(val: string | null) => { if (val) form.setValue("status", val) }} defaultValue={form.getValues("status")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Transport Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Vehicle Number</Label>
+                <Input {...form.register("vehicle_number")} placeholder="GJ 05 XX 1234" />
+              </div>
+              <div className="space-y-2">
+                <Label>Driver Name</Label>
+                <Input {...form.register("driver_name")} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Driver Mobile</Label>
+              <Input {...form.register("driver_mobile")} />
+            </div>
+            <div className="space-y-2">
+              <Label>Delivery Location</Label>
+              <Input {...form.register("delivery_location")} />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Challan Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Broker</Label>
+                <Input {...form.register("broker")} placeholder="Enter Broker Name (Optional)" />
+                {form.formState.errors.broker && (
+                  <p className="text-xs text-red-500">{form.formState.errors.broker.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Payment Within *</Label>
+                <div className="flex gap-2">
+                  <Input type="number" {...form.register("payment_within_value")} className="flex-1" />
+                  <Select onValueChange={(val: string | null) => { if (val) form.setValue("payment_within_unit", val) }} defaultValue={form.getValues("payment_within_unit")}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Days">Days</SelectItem>
+                      <SelectItem value="Weeks">Weeks</SelectItem>
+                      <SelectItem value="Months">Months</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(form.formState.errors.payment_within_value || form.formState.errors.payment_within_unit) && (
+                  <p className="text-xs text-red-500">Payment terms are required</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Due Date *</Label>
+                <Input type="date" {...form.register("due_date")} onChange={(e) => {
+                  form.register("due_date").onChange(e);
+                  handleDueDateChange(e);
+                }} />
+                {form.formState.errors.due_date && (
+                  <p className="text-xs text-red-500">{form.formState.errors.due_date.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Rupees (Read Only)</Label>
+                <Input {...form.register("amount_in_words")} readOnly className="bg-muted" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Items</CardTitle>
+            <CardDescription>Add items to this challan</CardDescription>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => append({ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 })}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Row
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[150px]">Quality</TableHead>
+                  <TableHead>Fabric</TableHead>
+                  <TableHead>Color</TableHead>
+                  <TableHead className="w-[100px]">Meters</TableHead>
+                  <TableHead className="w-[100px]">Weight</TableHead>
+                  <TableHead className="w-[100px]">Rate</TableHead>
+                  <TableHead className="w-[120px]">Amount</TableHead>
+                  <TableHead className="w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {fields.map((field, index) => {
+                  const m = form.watch(`items.${index}.meter`) || 0
+                  const r = form.watch(`items.${index}.rate`) || 0
+                  // Auto calc amount
+                  if (m * r !== form.getValues(`items.${index}.amount`)) {
+                     form.setValue(`items.${index}.amount`, m * r)
+                  }
+
+                  return (
+                    <TableRow key={field.id}>
+                      <TableCell className="p-2">
+                        <Input {...form.register(`items.${index}.quality`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input {...form.register(`items.${index}.fabric_name`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input {...form.register(`items.${index}.color`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input type="number" step="0.01" {...form.register(`items.${index}.meter`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input type="number" step="0.01" {...form.register(`items.${index}.weight`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input type="number" step="0.01" {...form.register(`items.${index}.rate`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input type="number" step="0.01" {...form.register(`items.${index}.amount`)} readOnly className="h-8 bg-muted" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(index)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <div className="w-[300px] space-y-2 rounded-lg border p-4 bg-muted/50">
+              <div className="flex justify-between text-sm">
+                <span>Total Rolls:</span>
+                <span className="font-medium">{totals.rolls}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Total Meters:</span>
+                <span className="font-medium">{totals.meter.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Total Weight:</span>
+                <span className="font-medium">{totals.weight.toFixed(2)} kg</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                <span>Total Amount:</span>
+                <span>₹{totals.amount.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Additional Notes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea {...form.register("notes")} placeholder="Any special instructions or notes..." />
+        </CardContent>
+      </Card>
+    </form>
+  )
+}
