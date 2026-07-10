@@ -4,9 +4,14 @@ import { useEffect, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { PartyFormDialog } from "@/components/parties/party-form-dialog"
 import { Pencil, Trash2 } from "lucide-react"
-import { getParties, addParty, updateParty, deleteParty } from "@/services/parties.service"
+import {
+  getCustomersPaginated,
+  addCustomer,
+  updateCustomer,
+  deleteCustomer,
+} from "@/services/customers.service"
 import { getChallans } from "@/services/challans.service"
-import { Party } from "@/types"
+import { Customer } from "@/types"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { DataTable } from "@/components/tables/DataTable"
@@ -15,21 +20,24 @@ import { PageHeader } from "@/components/common/PageHeader"
 
 export default function PartiesClient() {
   const { selectedCompany } = useCompany()
-  const [parties, setParties] = useState<Party[]>([])
+  const [parties, setParties] = useState<Customer[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
-  
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [partyToDelete, setPartyToDelete] = useState<Party | null>(null)
+  const [partyToDelete, setPartyToDelete] = useState<Customer | null>(null)
+  const pageSize = 10
 
   const loadParties = async () => {
     if (!selectedCompany) return
     setIsLoading(true)
     try {
-      const data = await getParties()
-      setParties(data.filter(p => p.company_id === selectedCompany.id))
-    } catch (error) {
-      toast.error("Failed to load parties")
+      const result = await getCustomersPaginated(selectedCompany.id, search, { page, pageSize })
+      setParties(result.data)
+      setTotal(result.total)
+    } catch {
+      toast.error("Failed to load customers")
     } finally {
       setIsLoading(false)
     }
@@ -37,49 +45,37 @@ export default function PartiesClient() {
 
   useEffect(() => {
     loadParties()
-  }, [selectedCompany])
+  }, [selectedCompany, search, page])
 
-  const handlePartyAddedOrUpdated = async (updatedParty: Party) => {
-    const existingParties = await getParties()
-    const exists = existingParties.find(p => p.id === updatedParty.id)
-    if (exists) {
-      await updateParty(updatedParty)
+  const handlePartyAddedOrUpdated = async (updatedParty: Customer) => {
+    if (updatedParty.id && parties.find((p) => p.id === updatedParty.id)) {
+      await updateCustomer(updatedParty)
     } else {
-      await addParty(updatedParty)
+      await addCustomer(updatedParty)
     }
     await loadParties()
-  }
-
-  const handleDeleteClick = (party: Party) => {
-    setPartyToDelete(party)
-    setDeleteDialogOpen(true)
   }
 
   const confirmDelete = async () => {
-    if (!partyToDelete) return
+    if (!partyToDelete || !selectedCompany) return
 
-    const challans = await getChallans()
-    const isLinked = challans.some(c => c.party_id === partyToDelete.id)
+    try {
+      const challans = await getChallans(selectedCompany.id)
+      const isLinked = challans.some((c) => c.customer_id === partyToDelete.id)
 
-    if (isLinked) {
-      toast.error("This party cannot be deleted because it is linked to existing challans.")
-      setDeleteDialogOpen(false)
-      setPartyToDelete(null)
-      return
+      if (isLinked) {
+        toast.error("This customer cannot be deleted because it is linked to existing challans.")
+      } else {
+        await deleteCustomer(partyToDelete.id)
+        toast.success("Customer deleted successfully.")
+        await loadParties()
+      }
+    } catch {
+      toast.error("Failed to delete customer")
     }
-
-    await deleteParty(partyToDelete.id)
-    toast.success("Party deleted successfully.")
-    await loadParties()
     setDeleteDialogOpen(false)
     setPartyToDelete(null)
   }
-
-  const filteredParties = parties.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    (p.gst_number && p.gst_number.toLowerCase().includes(search.toLowerCase())) ||
-    (p.city && p.city.toLowerCase().includes(search.toLowerCase()))
-  )
 
   if (!selectedCompany) {
     return (
@@ -90,67 +86,75 @@ export default function PartiesClient() {
   }
 
   const columns = [
-    { header: "Name", accessorKey: "name" as keyof Party, className: "font-medium" },
-    { header: "Contact Person", cell: (p: Party) => p.contact_person || "-" },
-    { header: "Mobile", cell: (p: Party) => p.mobile || "-" },
-    { header: "City", cell: (p: Party) => p.city || "-" },
-    { header: "GST Number", cell: (p: Party) => p.gst_number || "-" },
-    { 
-      header: "Actions", 
+    { header: "Name", accessorKey: "name" as keyof Customer, className: "font-medium" },
+    { header: "Mobile", cell: (p: Customer) => p.mobile || "-" },
+    { header: "Email", cell: (p: Customer) => p.email || "-" },
+    { header: "Broker", cell: (p: Customer) => p.broker || "-" },
+    { header: "City", cell: (p: Customer) => p.city || "-" },
+    { header: "GST Number", cell: (p: Customer) => p.gst_number || "-" },
+    {
+      header: "Actions",
       className: "text-right",
-      cell: (p: Party) => (
+      cell: (p: Customer) => (
         <div className="flex justify-end gap-2">
           <PartyFormDialog
-            onPartyAdded={handlePartyAddedOrUpdated}
             initialData={p}
+            onPartyAdded={handlePartyAddedOrUpdated}
             trigger={
-              <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+              <Button variant="ghost" size="icon">
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit party</span>
               </Button>
             }
           />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            onClick={() => handleDeleteClick(p)}
-          >
+          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setPartyToDelete(p); setDeleteDialogOpen(true) }}>
             <Trash2 className="h-4 w-4" />
-            <span className="sr-only">Delete party</span>
           </Button>
         </div>
-      )
-    }
+      ),
+    },
   ]
 
   return (
-    <div className="space-y-6 flex flex-col h-[calc(100vh-8rem)]">
+    <div className="space-y-6">
       <PageHeader
-        title="Parties"
-        description={`Manage clients for ${selectedCompany.name}`}
+        title="Customers"
+        description={`Manage customers for ${selectedCompany.name}`}
         action={<PartyFormDialog onPartyAdded={handlePartyAddedOrUpdated} />}
       />
 
-      <div className="flex-1 overflow-auto">
-        <DataTable
-          data={filteredParties}
-          columns={columns}
-          searchPlaceholder="Search parties..."
-          searchValue={search}
-          onSearchChange={setSearch}
-          isLoading={isLoading}
-          emptyMessage="No parties found."
-        />
-      </div>
+      <DataTable
+        data={parties}
+        columns={columns}
+        searchValue={search}
+        onSearchChange={(value) => { setSearch(value); setPage(1) }}
+        isLoading={isLoading}
+        searchPlaceholder="Search by name, GST, mobile, broker..."
+      />
+
+      {total > pageSize && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" disabled={page * pageSize >= total} onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <ConfirmationDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Party"
-        description="Are you sure you want to delete this party? This action cannot be undone."
+        title="Delete Customer"
+        description={`Are you sure you want to delete ${partyToDelete?.name}?`}
         confirmText="Delete"
         onConfirm={confirmDelete}
+        variant="destructive"
       />
     </div>
   )

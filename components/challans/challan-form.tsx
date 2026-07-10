@@ -16,9 +16,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { toast } from "sonner"
 import { Loader2, Plus, Trash2 } from "lucide-react"
-import { getParties } from "@/services/parties.service"
-import { addChallan, updateChallan } from "@/services/challans.service"
-import { Party, Challan, ChallanItem, ChallanStatus } from "@/types"
+import { getCustomers } from "@/services/customers.service"
+import { addChallan, updateChallan, generateChallanNumber } from "@/services/challans.service"
+import { useAuth } from "@/hooks/useAuth"
+import { Customer, Challan, ChallanItem, ChallanStatus } from "@/types"
 import { calculateDueDate } from "@/utils/calculateDueDate"
 import { format } from "date-fns"
 
@@ -58,7 +59,8 @@ const challanSchema = z.object({
 export function ChallanForm({ initialData }: { initialData?: Challan }) {
   const router = useRouter()
   const { selectedCompany } = useCompany()
-  const [parties, setParties] = useState<Party[]>([])
+  const { user } = useAuth()
+  const [parties, setParties] = useState<Customer[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDueDateManuallyEdited, setIsDueDateManuallyEdited] = useState(false)
   const isEditMode = !!initialData;
@@ -69,7 +71,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
       challan_number: initialData.challan_number,
       bill_number: initialData.bill_number || "",
       date: initialData.date,
-      party_id: initialData.party_id,
+      party_id: initialData.customer_id ?? initialData.party_id ?? "",
       vehicle_number: initialData.vehicle_number || "",
       driver_name: initialData.driver_name || "",
       driver_mobile: initialData.driver_mobile || "",
@@ -95,7 +97,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         remarks: i.remarks || ""
       })) : [{ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 }]
     } : {
-      challan_number: `CHL-${new Date().getTime().toString().slice(-6)}`,
+      challan_number: "",
       bill_number: "",
       date: new Date().toISOString().split('T')[0],
       broker: "",
@@ -129,12 +131,26 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
   useEffect(() => {
     async function fetchParties() {
       if (selectedCompany) {
-        const storedParties = await getParties()
-        setParties(storedParties.filter(p => p.company_id === selectedCompany.id))
+        const storedParties = await getCustomers(selectedCompany.id)
+        setParties(storedParties)
       }
     }
     fetchParties()
   }, [selectedCompany])
+
+  useEffect(() => {
+    async function loadChallanNumber() {
+      if (!isEditMode && selectedCompany && !form.getValues("challan_number")) {
+        try {
+          const number = await generateChallanNumber(selectedCompany.id)
+          form.setValue("challan_number", number)
+        } catch {
+          toast.error("Failed to generate challan number")
+        }
+      }
+    }
+    loadChallanNumber()
+  }, [isEditMode, selectedCompany, form])
 
   useEffect(() => {
     form.setValue("amount_in_words", numberToWords(totals.amount))
@@ -172,40 +188,36 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
     
     try {
       const party = parties.find(p => p.id === values.party_id)
-      
-      const newChallan: Challan = {
-        id: initialData ? initialData.id : `cha-${Date.now()}`,
+
+      const challanPayload = {
         company_id: selectedCompany.id,
+        customer_id: values.party_id,
         challan_number: values.challan_number,
-        bill_number: values.bill_number,
+        bill_number: values.bill_number || null,
         date: values.date,
-        party_id: values.party_id,
-        vehicle_number: values.vehicle_number,
-        driver_name: values.driver_name,
-        driver_mobile: values.driver_mobile,
-        delivery_location: values.delivery_location,
-        broker: values.broker,
+        vehicle_number: values.vehicle_number || null,
+        driver_name: values.driver_name || null,
+        driver_mobile: values.driver_mobile || null,
+        delivery_location: values.delivery_location || null,
+        broker: values.broker || null,
         payment_within_value: values.payment_within_value,
         payment_within_unit: values.payment_within_unit,
+        payment_terms: `${values.payment_within_value} ${values.payment_within_unit}`,
         due_date: values.due_date,
-        amount_in_words: values.amount_in_words,
-        notes: values.notes,
-        created_at: initialData?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        amount_in_words: values.amount_in_words || null,
+        notes: values.notes || null,
         status: values.status as ChallanStatus,
-        party: party,
-        items: values.items.map((item, index) => ({
+        items: values.items.map((item) => ({
           ...item,
-          id: isEditMode && initialData.items?.[index]?.id ? initialData.items[index].id : `item-new-${Date.now()}-${index}`,
-          challan_id: isEditMode ? initialData.id : `chl-new-${Date.now()}`
-        } as ChallanItem))
+          challan_id: initialData?.id ?? '',
+        } as ChallanItem)),
       }
-      
+
       if (initialData) {
-        await updateChallan(newChallan)
+        await updateChallan({ ...challanPayload, id: initialData.id, items: challanPayload.items })
         toast.success("Challan updated successfully!")
       } else {
-        await addChallan(newChallan)
+        await addChallan(challanPayload, user?.id)
         toast.success("Challan created successfully!")
       }
       
@@ -262,10 +274,10 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Party *</Label>
+                <Label>Customer *</Label>
                 <Select onValueChange={(val: string | null) => { if (val) form.setValue("party_id", val) }} defaultValue={form.getValues("party_id")}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a party" />
+                    <SelectValue placeholder="Select a customer" />
                   </SelectTrigger>
                   <SelectContent>
                     {parties.map(party => (

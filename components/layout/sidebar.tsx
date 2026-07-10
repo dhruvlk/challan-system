@@ -7,9 +7,9 @@ import {
   LayoutDashboard,
   Building2,
   Users,
+  Package,
   FileText,
   PieChart,
-  Settings,
   LogOut,
   Menu
 } from "lucide-react"
@@ -24,10 +24,10 @@ import { LogoutDialog } from "@/components/auth/LogoutDialog"
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Companies', href: '/companies', icon: Building2 },
-  { name: 'Parties', href: '/parties', icon: Users },
+  { name: 'Customers', href: '/parties', icon: Users },
+  { name: 'Products', href: '/products', icon: Package },
   { name: 'Challans', href: '/challans', icon: FileText },
   { name: 'Reports', href: '/reports', icon: PieChart },
-  // { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 export function Sidebar() {

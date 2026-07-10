@@ -26,7 +26,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    // If already logged in, redirect to dashboard
     if (isAuthenticated) {
       router.replace("/")
     }
@@ -34,35 +33,22 @@ export default function LoginPage() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   })
 
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true)
-
-    // Simulate network delay
-    setTimeout(() => {
-      if (values.email === "admin@textile.com" && values.password === "admin123") {
-        login({
-          id: 1,
-          name: "Admin",
-          email: "admin@textile.com",
-          role: "Administrator",
-          isAuthenticated: true,
-        })
-        toast.success("Welcome back, Admin!")
-        router.push("/")
-      } else {
-        toast.error("Invalid email or password.")
-      }
+    const result = await login(values.email, values.password)
+    if (result.error) {
+      toast.error(result.error)
       setIsLoading(false)
-    }, 800)
+      return
+    }
+    toast.success("Welcome back!")
+    router.push("/")
+    setIsLoading(false)
   }
 
-  // Prevent flashing login form if authenticated
   if (isAuthenticated) return null
 
   return (
@@ -76,7 +62,7 @@ export default function LoginPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Enter your credentials to access your account
+                Sign in with your Supabase account
               </p>
             </div>
           </div>
@@ -87,7 +73,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@textile.com"
+                placeholder="you@company.com"
                 className="rounded-xl h-12"
                 {...form.register("email")}
               />
@@ -111,11 +97,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {form.formState.errors.password && (
@@ -123,8 +105,8 @@ export default function LoginPage() {
               )}
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full rounded-xl h-12 text-base font-medium shadow-md transition-all hover:shadow-lg active:scale-[0.98]"
               disabled={isLoading}
             >
@@ -138,11 +120,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-          
-          <div className="mt-8 text-center text-xs text-muted-foreground">
-            <p>Demo Credentials:</p>
-            <p className="font-medium mt-1">admin@textile.com / admin123</p>
-          </div>
         </div>
       </div>
     </div>

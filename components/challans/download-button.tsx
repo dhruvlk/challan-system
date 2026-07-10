@@ -29,7 +29,7 @@ export function DownloadChallanButton({ challan, company, variant = "ghost", siz
 
       // Generate the PDF blob
       const blob = await pdf(
-        <ChallanPDF challan={challan} company={company} party={challan.party} />
+        <ChallanPDF challan={challan} company={company} party={challan.customer ?? challan.party} />
       ).toBlob()
 
       // Create a download link

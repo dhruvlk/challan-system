@@ -1,7 +1,8 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
-import { Challan, Company, Party } from '@/types';
+import { Challan, Company, Customer } from '@/types';
 import { numberToWords } from '@/lib/number-to-words';
+import { formatCompanyAddress, formatBankDetails, parseTerms, itemDescription, primaryHsnCode } from '@/lib/pdf-utils';
 
 // Register standard fonts
 Font.register({
@@ -280,26 +281,23 @@ const styles = StyleSheet.create({
 interface ChallanPDFProps {
   challan: Challan;
   company: Company;
-  party?: Party;
+  party?: Customer;
 }
 
 export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
-  // Calculate totals
-  const totalMeters = (challan.items || []).reduce((sum, item) => sum + (item.meter || 0), 0);
-  const totalAmount = (challan.items || []).reduce((sum, item) => sum + (item.amount || 0), 0);
-
-  // Pad items to exactly 12 rows for consistent table layout height
+  const customer = party ?? challan.customer ?? challan.party;
+  const items = challan.items ?? [];
+  const totalMeters = items.reduce((sum, item) => sum + (item.meter ?? item.quantity ?? 0), 0);
+  const subtotal = challan.subtotal ?? items.reduce((sum, item) => sum + (item.amount ?? 0), 0);
+  const cgst = challan.cgst_amount ?? 0;
+  const sgst = challan.sgst_amount ?? 0;
+  const igst = challan.igst_amount ?? 0;
+  const grandTotal = challan.grand_total ?? subtotal + cgst + sgst + igst + (challan.other_charges ?? 0);
+  const bankLines = formatBankDetails(company);
+  const terms = parseTerms(company.terms_conditions);
+  const hsnCode = primaryHsnCode(items);
   const MAX_ROWS = 12;
-  const displayItems = Array(MAX_ROWS).fill(null).map((_, i) => {
-    return (challan.items && challan.items[i]) ? challan.items[i] : null;
-  });
-
-  // Assuming a generic tax of 5% total if we don't have split CGST/SGST in mock data yet
-  // In a real app, this comes from the invoice math.
-  const cgst = (totalAmount * 2.5) / 100;
-  const sgst = (totalAmount * 2.5) / 100;
-  const igst = 0;
-  const grandTotal = totalAmount + cgst + sgst + igst;
+  const displayItems = Array(MAX_ROWS).fill(null).map((_, i) => items[i] ?? null);
 
   return (
     <Document>
@@ -313,8 +311,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
             <View style={[styles.religiousTextWrapper, { flex: 1 }]}>
               <Text style={styles.religiousText}>|| શ્રી ૧| ||</Text>
               <Text style={styles.religiousText}>|| શ્રી ગણેશાય નમઃ ||</Text>
-            </View>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
+            </View>            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
               <Svg viewBox="0 0 24 24" width="12" height="12" style={{ marginRight: 4 }}>
                 <Path
                   d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
@@ -329,10 +326,12 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
             </View>
           </View>
           <Text style={styles.companyName}>{(company.name || '').toUpperCase()}</Text>
-          <Text style={styles.companyTagline}>Manufacturers : Art Silk Cloth</Text>
+          {company.tagline ? (
+            <Text style={styles.companyTagline}>{company.tagline}</Text>
+          ) : null}
 
           <View style={styles.addressBar}>
-            <Text style={styles.addressText}>{company.address || 'Survey No.8, Plot No.29/1, Mahaprabhu Nagar, Limbayat, Surat.'}</Text>
+            <Text style={styles.addressText}>{formatCompanyAddress(company) || company.address || '-'}</Text>
           </View>
         </View>
 
@@ -342,19 +341,19 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
             <Text style={styles.sectionTitle}>Billed To:</Text>
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabel}>Name :</Text>
-              <Text style={styles.fieldLine}>{party?.name || ''}</Text>
+              <Text style={styles.fieldLine}>{customer?.name || ''}</Text>
             </View>
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabel}>Address:</Text>
-              <Text style={styles.fieldLine}>{party?.address || ''}</Text>
+              <Text style={styles.fieldLine}>{customer?.address || ''}</Text>
             </View>
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabel}></Text>
-              <Text style={styles.fieldLine}>{party?.city ? `${party.city}, ${party.state}` : ''}</Text>
+              <Text style={styles.fieldLine}>{customer?.city ? `${customer.city}${customer.state ? `, ${customer.state}` : ''}` : ''}</Text>
             </View>
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabel}>Gst no. :</Text>
-              <Text style={styles.fieldLine}>{party?.gst_number || ''}</Text>
+              <Text style={styles.fieldLine}>{customer?.gst_number || ''}</Text>
             </View>
           </View>
 
@@ -373,7 +372,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
             </View>
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabelRight}>HSN Code:</Text>
-              <Text style={styles.fieldLine}>5407</Text>
+              <Text style={styles.fieldLine}>{hsnCode}</Text>
             </View>
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabelRight}>Broker:</Text>
@@ -406,7 +405,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
               <View style={{ padding: 5 }}>
                 {displayItems.map((item, i) => (
                   <View key={i} style={styles.tableRow}>
-                    <Text style={styles.cellText}>{item ? `${item.quality || ''} ${item.fabric_name || ''}`.trim() : ' '}</Text>
+                    <Text style={styles.cellText}>{item ? itemDescription(item) : ' '}</Text>
                   </View>
                 ))}
               </View>
@@ -430,7 +429,6 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
                   <Text style={[styles.cellText, { flex: 1, flexWrap: 'wrap', lineHeight: 1.4, marginTop: 3 }]}>{numberToWords(Math.round(grandTotal))}</Text>
                 </View>
                 <View style={{ height: 10 }} />
-                <Text style={styles.noDyeingText}>NO DYEING GUARANTEE</Text>
               </View>
             </View>
 
@@ -478,15 +476,15 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
 
               <View style={{ borderTopWidth: 1, borderColor: '#000000' }}>
                 <View style={styles.taxRow}>
-                  <Text style={styles.taxLabel}>CGST  %</Text>
+                  <Text style={styles.taxLabel}>CGST {challan.cgst_percent ?? 0}%</Text>
                   <Text style={styles.taxValue}>{cgst.toFixed(2)}</Text>
                 </View>
                 <View style={styles.taxRow}>
-                  <Text style={styles.taxLabel}>SGST  %</Text>
+                  <Text style={styles.taxLabel}>SGST {challan.sgst_percent ?? 0}%</Text>
                   <Text style={styles.taxValue}>{sgst.toFixed(2)}</Text>
                 </View>
                 <View style={styles.taxRow}>
-                  <Text style={styles.taxLabel}>IGST  %</Text>
+                  <Text style={styles.taxLabel}>IGST {challan.igst_percent ?? 0}%</Text>
                   <Text style={styles.taxValue}>{igst.toFixed(2)}</Text>
                 </View>
                 <View style={styles.totalRow}>
@@ -503,9 +501,13 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
           <View style={styles.bankDetails}>
             <View>
               <Text style={styles.bankTitle}>Bank Details:</Text>
-              <Text style={styles.bankText}>THE SUTEXT CO.OPERATIVE BANK LTD.</Text>
-              <Text style={styles.bankText}>A/C : 001460011000199</Text>
-              <Text style={styles.bankText}>IFC CODE : SUTB248014</Text>
+              {bankLines.length > 0 ? (
+                bankLines.map((line, i) => (
+                  <Text key={i} style={styles.bankText}>{line}</Text>
+                ))
+              ) : (
+                <Text style={styles.bankText}>-</Text>
+              )}
             </View>
             <View style={[styles.preparedBySection, { marginTop: 15 }]}>
               <View style={styles.fieldRow}>
@@ -529,19 +531,19 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
           </View>
         </View>
 
-        {/* TERMS FOOTER */}
-        <View style={styles.termsContainer}>
-          <Text style={styles.termsTitle}>TERMS:</Text>
-          <View style={styles.termsFooterBox}>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>payment to be made by A/c. payee&apos;s cheque only.</Text></View>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>Any complaint for the goods should be made within 1 day after that no complaint will be entertained</Text></View>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>interest @24% per annum will be charged after due date of the bill.</Text></View>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>we are not responsible for any loss or damage during transit.</Text></View>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>we reserve the right of recovery before due date at any time.</Text></View>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>disputes will be settled in SURAT Courts only.</Text></View>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>personally selected goods will not be taken back.</Text></View>
+        {terms.length > 0 ? (
+          <View style={styles.termsContainer}>
+            <Text style={styles.termsTitle}>TERMS:</Text>
+            <View style={styles.termsFooterBox}>
+              {terms.map((term, i) => (
+                <View key={i} style={styles.termBullet}>
+                  <Text style={styles.bulletPoint}>•</Text>
+                  <Text style={styles.termText}>{term}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
+        ) : null}
       </Page>
     </Document>
   );

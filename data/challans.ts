@@ -50,6 +50,7 @@ const generateChallans = (companyId: string, prefix: string): Challan[] => {
       challan_number: `CHL-${prefix.toUpperCase()}-${String(i + 1).padStart(6, '0')}`,
       date: date.toISOString().split('T')[0],
       party_id: party.id,
+      customer_id: party.id,
       vehicle_number: vehicles[Math.floor(Math.random() * vehicles.length)],
       driver_name: drivers[Math.floor(Math.random() * drivers.length)],
       driver_mobile: `98765${Math.floor(10000 + Math.random() * 90000)}`,

@@ -13,6 +13,7 @@ export const ROUTES = {
   LOGIN: '/login',
   COMPANIES: '/companies',
   PARTIES: '/parties',
+  PRODUCTS: '/products',
   CHALLANS: '/challans',
   REPORTS: '/reports',
   SETTINGS: '/settings'

@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   onSearchChange?: (val: string) => void
   emptyMessage?: string
   isLoading?: boolean
+  hideSearch?: boolean
 }
 
 export function DataTable<T>({ 
@@ -26,11 +27,12 @@ export function DataTable<T>({
   searchValue, 
   onSearchChange,
   emptyMessage = "No results found.",
-  isLoading = false
+  isLoading = false,
+  hideSearch = false
 }: DataTableProps<T>) {
   return (
     <div className="space-y-4">
-      {onSearchChange && (
+      {onSearchChange && !hideSearch && (
         <div className="flex justify-between items-center">
           <div className="relative max-w-sm w-full">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />

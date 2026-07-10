@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { getChallanById } from "@/services/challans.service"
 import { getCompanies } from "@/services/companies.service"
-import { Challan } from "@/types"
+import { Challan, Company } from "@/types"
 import { ChallanPDF } from "@/components/pdf/ChallanPDF"
 import dynamic from "next/dynamic"
 
@@ -26,7 +26,7 @@ const PDFViewer = dynamic(
 export default function ChallanPrintClient({ id }: { id: string }) {
   const router = useRouter()
   const [challan, setChallan] = useState<Challan | null>(null)
-  const [company, setCompany] = useState<any>(null)
+  const [company, setCompany] = useState<Company | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function ChallanPrintClient({ id }: { id: string }) {
         if (found) {
           setChallan(found)
           const companies = await getCompanies()
-          setCompany(companies.find(c => c.id === found.company_id))
+          setCompany(companies.find(c => c.id === found.company_id) ?? null)
         }
         setIsLoading(false)
       }
@@ -48,9 +48,11 @@ export default function ChallanPrintClient({ id }: { id: string }) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>
   }
 
-  if (!challan || !company || !challan.party || !challan.items) {
+  if (!challan || !company) {
     return <div className="flex h-screen items-center justify-center">Challan not found</div>
   }
+
+  const customer = challan.customer ?? challan.party
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 p-4">
@@ -66,7 +68,7 @@ export default function ChallanPrintClient({ id }: { id: string }) {
 
       <div className="flex-1 rounded-lg overflow-hidden border shadow-sm bg-white">
         <PDFViewer width="100%" height="100%" className="border-none">
-          <ChallanPDF challan={challan} company={company} party={challan.party} />
+          <ChallanPDF challan={challan} company={company} party={customer} />
         </PDFViewer>
       </div>
     </div>

@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Loader2, PlusCircle } from "lucide-react"
-import { Party } from "@/types"
+import { Customer } from "@/types"
 
 interface PartyFormDialogProps {
-  onPartyAdded: (party: Party) => Promise<void> | void
-  initialData?: Party
+  onPartyAdded: (party: Customer) => Promise<void> | void
+  initialData?: Customer
   trigger?: React.ReactElement
 }
 
@@ -29,18 +29,20 @@ export function PartyFormDialog({ onPartyAdded, initialData, trigger }: PartyFor
     setIsLoading(true)
     const formData = new FormData(e.currentTarget)
     try {
-      const newParty: Party = {
-        id: initialData ? initialData.id : `party-new-${Date.now()}`,
+      const newParty: Customer = {
+        id: initialData ? initialData.id : '',
         company_id: initialData ? initialData.company_id : selectedCompany.id,
         name: formData.get('name') as string,
-        contact_person: formData.get('contact_person') as string,
-        mobile: formData.get('mobile') as string,
-        gst_number: formData.get('gst_number') as string,
-        address: formData.get('address') as string,
-        city: formData.get('city') as string,
-        state: formData.get('state') as string,
-        pincode: formData.get('pincode') as string,
-        notes: formData.get('notes') as string,
+        contact_person: (formData.get('contact_person') as string) || null,
+        mobile: (formData.get('mobile') as string) || null,
+        email: (formData.get('email') as string) || null,
+        gst_number: (formData.get('gst_number') as string) || null,
+        address: (formData.get('address') as string) || null,
+        city: (formData.get('city') as string) || null,
+        state: (formData.get('state') as string) || null,
+        pincode: (formData.get('pincode') as string) || null,
+        broker: (formData.get('broker') as string) || null,
+        notes: (formData.get('notes') as string) || null,
       }
       
       await onPartyAdded(newParty)
@@ -67,14 +69,14 @@ export function PartyFormDialog({ onPartyAdded, initialData, trigger }: PartyFor
       />
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Party" : "Add New Party"}</DialogTitle>
+          <DialogTitle>{initialData ? "Edit Customer" : "Add New Customer"}</DialogTitle>
           <DialogDescription>
-            {initialData ? `Edit details for ${initialData.name}` : `Create a new party/client for ${selectedCompany?.name}`}
+            {initialData ? `Edit details for ${initialData.name}` : `Create a new customer for ${selectedCompany?.name}`}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Party Name *</Label>
+            <Label htmlFor="name">Customer Name *</Label>
             <Input id="name" name="name" required placeholder="XYZ Textiles" defaultValue={initialData?.name} />
           </div>
           
@@ -92,6 +94,17 @@ export function PartyFormDialog({ onPartyAdded, initialData, trigger }: PartyFor
           <div className="space-y-2">
             <Label htmlFor="gst_number">GST Number</Label>
             <Input id="gst_number" name="gst_number" placeholder="22AAAAA0000A1Z5" defaultValue={initialData?.gst_number || ""} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" defaultValue={initialData?.email || ""} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="broker">Broker</Label>
+              <Input id="broker" name="broker" defaultValue={initialData?.broker || ""} />
+            </div>
           </div>
           
           <div className="space-y-2">

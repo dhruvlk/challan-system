@@ -1,7 +1,8 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { initializeCompaniesService, getCompanies, getSelectedCompanyId, setSelectedCompanyId } from '@/services/companies.service'
+import { getCompanies, getSelectedCompanyId, setSelectedCompanyId } from '@/services/companies.service'
+import { useAuth } from '@/hooks/useAuth'
 import { Company } from '@/types'
 
 interface CompanyContextType {
@@ -10,47 +11,56 @@ interface CompanyContextType {
   companies: Company[]
   setCompanies: (companies: Company[]) => void
   isLoading: boolean
+  refreshCompanies: () => Promise<void>
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined)
 
-export function CompanyProvider({ children, initialCompanies = [] }: { children: React.ReactNode, initialCompanies?: Company[] }) {
-  const [companies, setCompanies] = useState<Company[]>(initialCompanies)
+export function CompanyProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  const [companies, setCompanies] = useState<Company[]>([])
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadCompanies() {
-      await initializeCompaniesService()
+  const refreshCompanies = async () => {
+    if (!isAuthenticated) {
+      setCompanies([])
+      setSelectedCompany(null)
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    try {
       const storedCompanies = await getCompanies()
       setCompanies(storedCompanies)
-      
+
       const storedId = await getSelectedCompanyId()
-      if (storedId) {
-        const found = storedCompanies.find(c => c.id === storedId)
-        setSelectedCompany(found || storedCompanies[0] || null)
-      } else {
-        setSelectedCompany(storedCompanies[0] || null)
-      }
+      const active = storedCompanies.find((c) => c.is_active)
+      const found = storedId
+        ? storedCompanies.find((c) => c.id === storedId)
+        : active ?? storedCompanies[0]
+
+      setSelectedCompany(found ?? storedCompanies[0] ?? null)
+    } catch {
+      setCompanies([])
+      setSelectedCompany(null)
+    } finally {
       setIsLoading(false)
     }
-    loadCompanies()
-  }, [])
+  }
 
   useEffect(() => {
-    if (!selectedCompany && companies.length > 0) {
-      setSelectedCompany(companies[0])
-    }
-  }, [companies, selectedCompany])
+    refreshCompanies()
+  }, [isAuthenticated])
 
   const handleSetSelectedCompany = async (company: Company | null) => {
     setSelectedCompany(company)
     if (company) {
       await setSelectedCompanyId(company.id)
-    } else {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('challan_system_selected_company_id')
-      }
+      setCompanies((prev) =>
+        prev.map((c) => ({ ...c, is_active: c.id === company.id }))
+      )
     }
   }
 
@@ -62,6 +72,7 @@ export function CompanyProvider({ children, initialCompanies = [] }: { children:
         companies,
         setCompanies,
         isLoading,
+        refreshCompanies,
       }}
     >
       {children}

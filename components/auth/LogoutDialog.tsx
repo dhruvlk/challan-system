@@ -14,8 +14,8 @@ export function LogoutDialog({ open, onOpenChange }: LogoutDialogProps) {
   const { logout } = useAuth()
   const router = useRouter()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     onOpenChange(false)
     toast.success("Logged out successfully.")
     router.push("/login")
