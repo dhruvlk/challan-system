@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
 import { Challan, Company, Party } from '@/types';
+import { numberToWords } from '@/lib/number-to-words';
 
 // Register standard fonts
 Font.register({
@@ -21,23 +22,23 @@ const styles = StyleSheet.create({
   // --- HEADER SECTION ---
   headerContainer: {
     backgroundColor: '#FCEFD8', // Cream background
-    paddingTop: 15,
+    paddingTop: 8,
     paddingBottom: 0,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
     marginBottom: 5,
   },
   gstinText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
   },
   mobileText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
   },
@@ -52,13 +53,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Gujarati',
   },
   companyName: {
-    fontSize: 32,
+    fontSize: 35,
     textAlign: 'center',
+    fontWeight: 'bold',
     color: '#4A4036',
     fontFamily: 'Times-Roman',
   },
   companyTagline: {
-    fontSize: 11,
+    fontSize: 15,
     textAlign: 'center',
     color: '#333333',
     marginBottom: 10,
@@ -69,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addressText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 'bold',
     fontFamily: 'Helvetica-Bold',
   },
@@ -130,15 +132,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  thDesc: { width: '41%', textAlign: 'center', fontSize: 9, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 5 },
-  thPieces: { width: '12%', textAlign: 'center', fontSize: 9, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 2, alignItems: 'center', justifyContent: 'center' },
-  thMeters: { width: '14%', textAlign: 'center', fontSize: 9, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 2, alignItems: 'center', justifyContent: 'center' },
-  thRate: { width: '13%', textAlign: 'center', fontSize: 9, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 2, alignItems: 'center', justifyContent: 'center' },
-  thAmount: { width: '20%', textAlign: 'center', fontSize: 9, fontFamily: 'Helvetica-Bold', paddingVertical: 5 },
+  thDesc: { width: '41%', textAlign: 'center', fontSize: 10, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 5 },
+  thPieces: { width: '12%', textAlign: 'center', fontSize: 10, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 2, alignItems: 'center', justifyContent: 'center' },
+  thMeters: { width: '14%', textAlign: 'center', fontSize: 10, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 2, alignItems: 'center', justifyContent: 'center' },
+  thRate: { width: '13%', textAlign: 'center', fontSize: 10, fontFamily: 'Helvetica-Bold', borderRightWidth: 1, borderColor: '#000000', paddingVertical: 2, alignItems: 'center', justifyContent: 'center' },
+  thAmount: { width: '20%', textAlign: 'center', fontSize: 10, fontFamily: 'Helvetica-Bold', paddingVertical: 5 },
 
   tableBody: {
     flexDirection: 'row',
-    height: 310, // Fixed height to guarantee single-page layout
+    height: 290, // Fixed height to guarantee single-page layout
     borderWidth: 1,
     borderColor: '#000000',
   },
@@ -152,14 +154,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 4,
   },
-  cellText: { fontSize: 9 },
+  cellText: { fontSize: 11 },
 
   // (Table Bottom Wrapper Removed)
   bottomLabelRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  bottomLabel: { width: 80, fontSize: 8 },
+  bottomLabel: { width: 95, fontSize: 10, fontFamily: 'Helvetica-Bold' },
   noDyeingText: {
     marginTop: 10,
     marginLeft: 20,
@@ -173,7 +175,7 @@ const styles = StyleSheet.create({
     height: 18,
     alignItems: 'center',
   },
-  taxLabel: { width: '50%', fontSize: 8, paddingLeft: 4 },
+  taxLabel: { width: '50%', fontSize: 9, paddingLeft: 4 },
   taxValue: { width: '50%', fontSize: 9, textAlign: 'right', paddingRight: 4 },
   totalRow: {
     flexDirection: 'row',
@@ -191,16 +193,16 @@ const styles = StyleSheet.create({
   },
   bankDetails: {
     width: '50%',
-    height: 90,
+    height: 100,
     justifyContent: 'space-between',
   },
   bankTitle: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     marginBottom: 5,
   },
   bankText: {
-    fontSize: 8,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     marginBottom: 2,
   },
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
   },
   signatureSection: {
     width: '50%',
-    height: 90,
+    height: 100,
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
@@ -247,30 +249,30 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
   },
   termsTitle: {
-    fontSize: 8,
+    fontSize: 15,
     fontFamily: 'Helvetica-Bold',
     color: '#343c5b',
     marginLeft: 20,
     marginBottom: 2,
-    // marginTop: 2,
   },
   termsFooterBox: {
     backgroundColor: '#FCEFD8',
-    paddingTop: 4,
-    paddingBottom: 4,
+    paddingTop: 5,
+    paddingBottom: 5,
     paddingHorizontal: 20,
-    height: 70,
+    height: 80,
   },
   termBullet: {
     flexDirection: 'row',
-    marginBottom: 0,
+    marginBottom: 2,
   },
   bulletPoint: {
-    width: 8,
-    fontSize: 7,
+    width: 12,
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
   },
   termText: {
-    fontSize: 7,
+    fontSize: 9,
     flex: 1,
   },
 });
@@ -309,7 +311,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
               <Text style={styles.gstinText}>GSTIN: {company.gst_number || '-'}</Text>
             </View>
             <View style={[styles.religiousTextWrapper, { flex: 1 }]}>
-              <Text style={styles.religiousText}>|| શ્રી વા ||</Text>
+              <Text style={styles.religiousText}>|| શ્રી ૧| ||</Text>
               <Text style={styles.religiousText}>|| શ્રી ગણેશાય નમઃ ||</Text>
             </View>
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -326,7 +328,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
               <Text style={styles.mobileText}>{company.phone || '-'}</Text>
             </View>
           </View>
-          <Text style={styles.companyName}>{company.name}</Text>
+          <Text style={styles.companyName}>{(company.name || '').toUpperCase()}</Text>
           <Text style={styles.companyTagline}>Manufacturers : Art Silk Cloth</Text>
 
           <View style={styles.addressBar}>
@@ -409,26 +411,23 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
                 ))}
               </View>
               <View style={{ padding: 5, paddingBottom: 10 }}>
-                <View style={{ marginBottom: 15 }}>
+                <View style={[styles.bottomLabelRow, { marginBottom: 15 }]}>
                   <Text style={styles.bottomLabel}>Delivered By:</Text>
-                  <Text style={[styles.cellText, { fontFamily: 'Helvetica-Bold', marginTop: 4 }]}>
+                  <Text style={[styles.cellText, { fontFamily: 'Helvetica-Bold' }]}>
                     {challan.driver_name || '-'}
                   </Text>
-                  <Text style={[styles.cellText, { marginTop: 2 }]}>
-                    Mobile: {challan.driver_mobile ? `+91 ${challan.driver_mobile}` : '-'}
-                  </Text>
                 </View>
-                <View style={styles.bottomLabelRow}>
+                <View style={[styles.bottomLabelRow, { marginBottom: 6 }]}>
                   <Text style={styles.bottomLabel}>Payment Within:</Text>
                   <Text style={styles.cellText}>{challan.payment_within_value ? `${challan.payment_within_value} ${challan.payment_within_unit}` : ''}</Text>
                 </View>
-                <View style={styles.bottomLabelRow}>
+                <View style={[styles.bottomLabelRow, { marginBottom: 6, marginTop: 3 }]}>
                   <Text style={styles.bottomLabel}>Due Date:</Text>
                   <Text style={styles.cellText}>{challan.due_date ? new Date(challan.due_date).toLocaleDateString('en-GB') : ''}</Text>
                 </View>
                 <View style={[styles.bottomLabelRow, { alignItems: 'flex-start' }]}>
                   <Text style={styles.bottomLabel}>Rupees:</Text>
-                  <Text style={[styles.cellText, { flex: 1, flexWrap: 'wrap' }]}>{challan.amount_in_words || ''}</Text>
+                  <Text style={[styles.cellText, { flex: 1, flexWrap: 'wrap', lineHeight: 1.4, marginTop: 3 }]}>{numberToWords(Math.round(grandTotal))}</Text>
                 </View>
                 <View style={{ height: 10 }} />
                 <Text style={styles.noDyeingText}>NO DYEING GUARANTEE</Text>
@@ -522,9 +521,11 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
           </View>
 
           <View style={styles.signatureSection}>
-            <Text style={styles.forCompanyText}>For, {company.name}</Text>
-            <View style={styles.signatureLine}>
-              <Text style={styles.signatureText}>SIGNATURE</Text>
+            <View style={{ alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
+              <Text style={styles.forCompanyText}>For, {company.name}</Text>
+              <View style={styles.signatureLine}>
+                <Text style={styles.signatureText}>SIGNATURE</Text>
+              </View>
             </View>
           </View>
         </View>
