@@ -1,11 +1,11 @@
-import ChallansClient from "@/components/challans/ChallansClient"
+import { ChallansView } from "@/components/challans"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Challans | Textile Challan Management",
-  description: "Manage your challans",
+  description: "Manage your delivery challans",
 }
 
 export default function ChallansPage() {
-  return <ChallansClient />
+  return <ChallansView />
 }

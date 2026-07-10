@@ -1,9 +1,12 @@
+"use client"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Download, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Challan, Company } from "@/types"
 import { ChallanPDF } from "@/components/pdf/ChallanPDF"
+import { generatePdfFileName } from "@/utils/generatePdfFileName"
 
 interface DownloadButtonProps {
   challan: Challan
@@ -38,9 +41,8 @@ export function DownloadChallanButton({ challan, company, variant = "ghost", siz
       link.href = url
       
       // Determine filename
-      const filename = challan.challan_number 
-        ? `Challan-${challan.challan_number}.pdf` 
-        : "Challan.pdf"
+      const party = challan.customer ?? challan.party
+      const filename = generatePdfFileName(party?.name)
       
       link.download = filename
       document.body.appendChild(link)

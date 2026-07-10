@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/PageHeader"
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-export default function ReportsClient() {
+export function ReportsView() {
   const { selectedCompany } = useCompany()
 
   if (!selectedCompany) {

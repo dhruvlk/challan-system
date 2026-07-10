@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-
 import { Challan, Company, Customer } from '@/types';
 import { numberToWords } from '@/lib/number-to-words';
 import { formatCompanyAddress, getBankDetailRows, parseTerms, itemDescription, resolveHsnCode } from '@/lib/pdf-utils';
+import { generatePdfFileName } from '@/utils/generatePdfFileName';
 
 // Register standard fonts
 Font.register({
@@ -323,7 +324,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
   const displayItems = Array(MAX_ROWS).fill(null).map((_, i) => items[i] ?? null);
 
   return (
-    <Document>
+    <Document title={generatePdfFileName(customer?.name)}>
       <Page size="A4" style={styles.page}>
         {/* HEADER */}
         <View style={styles.headerContainer}>

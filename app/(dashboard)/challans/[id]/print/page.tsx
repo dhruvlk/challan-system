@@ -1,12 +1,12 @@
-import ChallanPrintClient from "@/components/challans/ChallanPrintClient"
+import { PrintChallanView } from "@/components/challans"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Print Challan | Textile Challan Management",
-  description: "Print delivery challan",
+  description: "Print your challan",
 }
 
 export default async function PrintChallanPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
-  return <ChallanPrintClient id={resolvedParams.id} />
+  return <PrintChallanView id={resolvedParams.id} />
 }

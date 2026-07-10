@@ -23,7 +23,7 @@ const PDFViewer = dynamic(
   }
 )
 
-export default function ChallanPrintClient({ id }: { id: string }) {
+export function PrintChallanView({ id }: { id: string }) {
   const router = useRouter()
   const [challan, setChallan] = useState<Challan | null>(null)
   const [company, setCompany] = useState<Company | null>(null)

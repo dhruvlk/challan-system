@@ -12,7 +12,7 @@ import { DataTable } from "@/components/tables/DataTable"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
 
-export default function ProductsClient() {
+export function ProductsView() {
   const { selectedCompany } = useCompany()
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)

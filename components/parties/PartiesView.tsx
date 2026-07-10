@@ -18,7 +18,7 @@ import { DataTable } from "@/components/tables/DataTable"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
 
-export default function PartiesClient() {
+export function PartiesView() {
   const { selectedCompany } = useCompany()
   const [parties, setParties] = useState<Customer[]>([])
   const [total, setTotal] = useState(0)

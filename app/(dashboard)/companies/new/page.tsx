@@ -1,4 +1,4 @@
-import CompanyNewClient from "@/components/companies/CompanyNewClient"
+import { NewCompanyView } from "@/components/companies"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function NewCompanyPage() {
-  return <CompanyNewClient />
+  return <NewCompanyView />
 }

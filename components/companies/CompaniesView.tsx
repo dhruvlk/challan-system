@@ -7,7 +7,7 @@ import { Building2, PlusCircle, Pencil } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/common/PageHeader"
 
-export default function CompaniesClient() {
+export function CompaniesView() {
   const { companies, selectedCompany, setSelectedCompany } = useCompany()
   const router = useRouter()
 

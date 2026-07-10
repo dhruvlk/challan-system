@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SmoothScrollProvider } from "@/components/providers/SmoothScrollProvider"
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,12 +28,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            <TooltipProvider>
-              {children}
-            </TooltipProvider>
-          </AuthProvider>
-          <Toaster />
+          <SmoothScrollProvider>
+            <AuthProvider>
+              <TooltipProvider>
+                {children}
+              </TooltipProvider>
+            </AuthProvider>
+            <Toaster />
+          </SmoothScrollProvider>
         </ThemeProvider>
       </body>
     </html>

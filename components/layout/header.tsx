@@ -1,83 +1,65 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { useCompany } from "@/components/company-provider"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Moon, Sun, Building2, Check, PlusCircle, User as UserIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/useAuth"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Bell, ChevronRight } from "lucide-react"
+import { usePathname } from "next/navigation"
+import Link from "next/link"
+import { cn } from "@/lib/utils"
+import { StaggerContainer, StaggerItem, FadeIn } from "@/components/animations"
+import { ThemeToggle } from "./ThemeToggle"
+
+function generateBreadcrumbs(pathname: string) {
+  const paths = pathname.split('/').filter(Boolean);
+  if (paths.length === 0) return [{ title: 'Dashboard', href: '/' }];
+
+  return [
+    { title: 'Dashboard', href: '/' },
+    ...paths.map((path, index) => {
+      const href = '/' + paths.slice(0, index + 1).join('/');
+      // Capitalize and remove hyphens
+      const title = path.charAt(0).toUpperCase() + path.slice(1).replace(/-/g, ' ');
+      return { title, href };
+    })
+  ];
+}
 
 export function Header() {
-  const { setTheme } = useTheme()
-  const { selectedCompany, companies, setSelectedCompany } = useCompany()
-  const { user } = useAuth()
-  const router = useRouter()
+  const { setTheme, theme } = useTheme()
+  const pathname = usePathname()
+  const breadcrumbs = generateBreadcrumbs(pathname)
 
   return (
-    <header className="flex h-14 lg:h-[60px] items-center gap-4 border-b bg-muted/40 px-6 justify-end w-full">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-background/80 backdrop-blur-md px-6 border-b border-border/40">
       
-      {/* Company Switcher */}
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" className="flex items-center gap-2 max-w-[200px] truncate" />}>
-          <Building2 className="h-4 w-4 shrink-0" />
-          <span className="truncate">{selectedCompany?.name || 'Select Company'}</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[200px]">
-          {companies.map((company) => (
-            <DropdownMenuItem
-              key={company.id}
-              onClick={() => setSelectedCompany(company)}
-              className="flex items-center justify-between"
-            >
-              <span className="truncate">{company.name}</span>
-              {selectedCompany?.id === company.id && (
-                <Check className="h-4 w-4 ml-2 shrink-0" />
+      {/* Breadcrumb Navigation */}
+      <StaggerContainer className="flex items-center text-sm font-medium" delayChildren={0.1} staggerChildren={0.05}>
+        {breadcrumbs.map((crumb, index) => {
+          const isLast = index === breadcrumbs.length - 1;
+          return (
+            <StaggerItem key={crumb.href} className="flex items-center">
+              {index > 0 && (
+                <ChevronRight className="mx-2 h-4 w-4 text-muted-foreground/50" />
               )}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuItem onClick={() => router.push('/companies/new')}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            <span>New Company</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+              {isLast ? (
+                <span className="text-foreground">{crumb.title}</span>
+              ) : (
+                <Link 
+                  href={crumb.href}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {crumb.title}
+                </Link>
+              )}
+            </StaggerItem>
+          )
+        })}
+      </StaggerContainer>
 
-      {/* Theme Toggle */}
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" />}>
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setTheme("light")}>
-            Light
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme("dark")}>
-            Dark
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTheme("system")}>
-            System
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* User Profile */}
-      {user && (
-        <div className="flex items-center gap-2 pl-4 border-l">
-          <Avatar className="h-8 w-8 bg-primary/10">
-            <AvatarFallback className="text-primary font-medium">
-              {user.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div className="hidden md:flex flex-col text-sm leading-tight">
-            <span className="font-semibold">{user.name}</span>
-            <span className="text-xs text-muted-foreground">{user.email}</span>
-          </div>
-        </div>
-      )}
+      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-4 duration-500 delay-200 fill-mode-both">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+      </div>
     </header>
   )
 }

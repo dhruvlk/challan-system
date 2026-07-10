@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 
-export default function ChallansClient() {
+export function ChallansView() {
   const { selectedCompany } = useCompany()
   const { user } = useAuth()
   const router = useRouter()

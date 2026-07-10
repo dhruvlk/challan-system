@@ -6,7 +6,7 @@ import { getChallanById } from "@/services/challans.service"
 import { notFound } from "next/navigation"
 import { Challan } from "@/types"
 
-export default function ChallanEditClient({ id }: { id: string }) {
+export function EditChallanView({ id }: { id: string }) {
   const [challan, setChallan] = useState<Challan | null>(null)
   const [loading, setLoading] = useState(true)
 

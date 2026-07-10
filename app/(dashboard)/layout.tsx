@@ -2,6 +2,7 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { AuthGuard } from "@/components/auth/AuthGuard"
 import { CompanyProvider } from "@/components/company-provider"
+import { AnimationProvider } from "@/components/providers/AnimationProvider"
 
 export default function DashboardLayout({
   children,
@@ -15,9 +16,11 @@ export default function DashboardLayout({
           <Sidebar />
           <div className="flex flex-1 flex-col w-full min-w-0">
             <Header />
-            <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-              {children}
-            </main>
+            <AnimationProvider>
+              <main className="flex-1 p-4 md:p-6 lg:p-8">
+                {children}
+              </main>
+            </AnimationProvider>
           </div>
         </div>
       </CompanyProvider>
