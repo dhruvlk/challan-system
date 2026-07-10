@@ -118,7 +118,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
   const challanDate = form.watch("date")
   const paymentValue = form.watch("payment_within_value")
   const paymentUnit = form.watch("payment_within_unit")
-  
+
   const totals = items.reduce((acc: { rolls: number, meter: number, weight: number, amount: number }, item) => ({
     rolls: acc.rolls + 1,
     meter: acc.meter + (Number(item.meter) || 0),
@@ -154,7 +154,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
 
   useEffect(() => {
     if (isDueDateManuallyEdited) return
-    
+
     const newDueDate = calculateDueDate(challanDate, paymentValue, paymentUnit)
     if (newDueDate) {
       form.setValue("due_date", format(newDueDate, 'yyyy-MM-dd'), { shouldValidate: true })
@@ -169,10 +169,10 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
   const onSubmit = async (values: z.infer<typeof challanSchema>) => {
     if (!selectedCompany) return
     setIsSubmitting(true)
-    
+
     try {
       const party = parties.find(p => p.id === values.party_id)
-      
+
       const newChallan: Challan = {
         id: initialData ? initialData.id : `cha-${Date.now()}`,
         company_id: selectedCompany.id,
@@ -200,7 +200,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
           challan_id: isEditMode ? initialData.id : `chl-new-${Date.now()}`
         } as ChallanItem))
       }
-      
+
       if (initialData) {
         await updateChallan(newChallan)
         toast.success("Challan updated successfully!")
@@ -208,7 +208,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         await addChallan(newChallan)
         toast.success("Challan created successfully!")
       }
-      
+
       router.push("/challans")
       router.refresh()
     } catch (error) {
@@ -259,7 +259,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
                 <Input type="date" {...form.register("date")} />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Party *</Label>
@@ -324,7 +324,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Challan Details</CardTitle>
@@ -410,7 +410,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
                   const r = form.watch(`items.${index}.rate`) || 0
                   // Auto calc amount
                   if (m * r !== form.getValues(`items.${index}.amount`)) {
-                     form.setValue(`items.${index}.amount`, m * r)
+                    form.setValue(`items.${index}.amount`, m * r)
                   }
 
                   return (
