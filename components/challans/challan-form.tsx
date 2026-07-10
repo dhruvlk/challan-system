@@ -209,6 +209,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         toast.success("Challan created successfully!")
       }
 
+      form.reset(values)
       router.push("/challans")
       router.refresh()
     } catch (error) {
@@ -219,6 +220,9 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
   }
 
   if (!selectedCompany) return null
+
+  const { isDirty, isValid } = form.formState
+  const isSubmitDisabled = isSubmitting || !isDirty || !isValid
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -233,7 +237,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitDisabled} className={isSubmitDisabled ? "opacity-50 cursor-not-allowed" : ""}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isEditMode ? "Update Challan" : "Create Challan"}
           </Button>

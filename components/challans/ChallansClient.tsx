@@ -111,9 +111,9 @@ export default function ChallansClient() {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'draft': return 'bg-gray-500'
-      case 'sent': return 'bg-amber-500'
+      case 'pending': return 'bg-amber-500'
       case 'delivered': return 'bg-emerald-500'
       case 'returned': return 'bg-blue-500'
       case 'cancelled': return 'bg-red-500'
@@ -122,9 +122,9 @@ export default function ChallansClient() {
   }
 
   const getDisplayStatus = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'draft': return 'Draft'
-      case 'sent': return 'Sent'
+      case 'pending': return 'Pending'
       case 'delivered': return 'Delivered'
       case 'returned': return 'Returned'
       case 'cancelled': return 'Cancelled'
