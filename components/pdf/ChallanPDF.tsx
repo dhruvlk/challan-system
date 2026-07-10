@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   preparedLabel: {
     width: 75,
-    fontSize: 9,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: '#343c5b',
   },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   forCompanyText: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
     color: '#3d302d',
   },
@@ -507,8 +507,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
               <Text style={styles.bankText}>A/C : 001460011000199</Text>
               <Text style={styles.bankText}>IFC CODE : SUTB248014</Text>
             </View>
-
-            <View style={styles.preparedBySection}>
+            <View style={[styles.preparedBySection, { marginTop: 15 }]}>
               <View style={styles.fieldRow}>
                 <Text style={styles.preparedLabel}>Prepared By :</Text>
                 <Text style={styles.preparedLine}></Text>
@@ -534,7 +533,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
         <View style={styles.termsContainer}>
           <Text style={styles.termsTitle}>TERMS:</Text>
           <View style={styles.termsFooterBox}>
-            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>payment to be made by A/c. payee's cheque only.</Text></View>
+            <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>payment to be made by A/c. payee&apos;s cheque only.</Text></View>
             <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>Any complaint for the goods should be made within 1 day after that no complaint will be entertained</Text></View>
             <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>interest @24% per annum will be charged after due date of the bill.</Text></View>
             <View style={styles.termBullet}><Text style={styles.bulletPoint}>•</Text><Text style={styles.termText}>we are not responsible for any loss or damage during transit.</Text></View>
