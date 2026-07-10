@@ -15,7 +15,7 @@ export function getBankDetailRows(company: Company): BankDetailRow[] {
   const rows: BankDetailRow[] = [];
 
   if (company.bank_name) {
-    rows.push({ value: company.bank_name, isBankName: true });
+    rows.push({ label: 'Bank Name:', value: company.bank_name });
   }
   if (company.account_number) {
     rows.push({ label: 'A/C No:', value: company.account_number });

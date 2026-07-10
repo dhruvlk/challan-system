@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
 import { Challan, Company, Customer } from '@/types';
 import { numberToWords } from '@/lib/number-to-words';
-import { formatCompanyAddress, formatBankDetails, parseTerms, itemDescription, resolveHsnCode } from '@/lib/pdf-utils';
+import { formatCompanyAddress, getBankDetailRows, parseTerms, itemDescription, resolveHsnCode } from '@/lib/pdf-utils';
 
 // Register standard fonts
 Font.register({
@@ -200,12 +200,32 @@ const styles = StyleSheet.create({
   bankTitle: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 5,
+    marginBottom: 6,
   },
-  bankText: {
+  bankRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 2,
+  },
+  bankLabel: {
+    width: 72,
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'left',
+    paddingRight: 4,
+  },
+  bankValue: {
+    flex: 1,
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'left',
+    lineHeight: 1.5,
+  },
+  bankPlainText: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     marginBottom: 2,
+    lineHeight: 1.5,
   },
 
   preparedBySection: {
@@ -231,7 +251,6 @@ const styles = StyleSheet.create({
   forCompanyText: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    color: '#3d302d',
   },
   signatureLine: {
     width: 180,
@@ -297,7 +316,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
   const sgst = challan.sgst_amount ?? 0;
   const igst = challan.igst_amount ?? 0;
   const grandTotal = challan.grand_total ?? subtotal + cgst + sgst + igst + (challan.other_charges ?? 0);
-  const bankLines = formatBankDetails(company);
+  const bankRows = getBankDetailRows(company);
   const terms = parseTerms(company.terms_conditions);
   const hsnCode = resolveHsnCode(company, items);
   const MAX_ROWS = 12;
@@ -505,12 +524,19 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
           <View style={styles.bankDetails}>
             <View>
               <Text style={styles.bankTitle}>Bank Details:</Text>
-              {bankLines.length > 0 ? (
-                bankLines.map((line, i) => (
-                  <Text key={i} style={styles.bankText}>{line}</Text>
-                ))
+              {bankRows.length > 0 ? (
+                bankRows.map((row, i) =>
+                  row.label ? (
+                    <View key={i} style={styles.bankRow}>
+                      <Text style={styles.bankLabel}>{row.label}</Text>
+                      <Text style={styles.bankValue}>{row.value}</Text>
+                    </View>
+                  ) : (
+                    <Text key={i} style={styles.bankPlainText}>{row.value}</Text>
+                  )
+                )
               ) : (
-                <Text style={styles.bankText}>-</Text>
+                <Text style={styles.bankPlainText}>-</Text>
               )}
             </View>
             <View style={[styles.preparedBySection, { marginTop: 15 }]}>
