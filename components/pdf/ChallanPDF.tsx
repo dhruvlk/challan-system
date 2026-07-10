@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
 import { Challan, Company, Customer } from '@/types';
 import { numberToWords } from '@/lib/number-to-words';
-import { formatCompanyAddress, formatBankDetails, parseTerms, itemDescription, primaryHsnCode } from '@/lib/pdf-utils';
+import { formatCompanyAddress, formatBankDetails, parseTerms, itemDescription, resolveHsnCode } from '@/lib/pdf-utils';
 
 // Register standard fonts
 Font.register({
@@ -295,7 +295,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
   const grandTotal = challan.grand_total ?? subtotal + cgst + sgst + igst + (challan.other_charges ?? 0);
   const bankLines = formatBankDetails(company);
   const terms = parseTerms(company.terms_conditions);
-  const hsnCode = primaryHsnCode(items);
+  const hsnCode = resolveHsnCode(company, items);
   const MAX_ROWS = 12;
   const displayItems = Array(MAX_ROWS).fill(null).map((_, i) => items[i] ?? null);
 

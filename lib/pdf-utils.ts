@@ -17,17 +17,11 @@ export function getBankDetailRows(company: Company): BankDetailRow[] {
   if (company.bank_name) {
     rows.push({ value: company.bank_name, isBankName: true });
   }
-  if (company.account_name) {
-    rows.push({ label: 'A/C Name:', value: company.account_name });
-  }
   if (company.account_number) {
     rows.push({ label: 'A/C No:', value: company.account_number });
   }
   if (company.ifsc_code) {
     rows.push({ label: 'IFSC:', value: company.ifsc_code });
-  }
-  if (company.branch) {
-    rows.push({ label: 'Branch:', value: company.branch });
   }
 
   if (rows.length === 0 && company.bank_details) {
