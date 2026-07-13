@@ -96,8 +96,27 @@ export type ChallanRow = {
   igst_amount: number;
   other_charges: number;
   grand_total: number;
+  payment_status: string;
+  payment_received_date: string | null;
+  payment_amount_received: number;
+  payment_reference: string | null;
+  payment_notes: string | null;
+  payment_mode: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type ChallanPaymentRow = {
+  id: string;
+  challan_id: string;
+  company_id: string;
+  amount: number;
+  payment_date: string;
+  payment_mode: string | null;
+  reference_number: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
 };
 
 export type ChallanItemRow = {
@@ -185,6 +204,15 @@ export interface Database {
         Row: ChallanSequenceRow;
         Insert: ChallanSequenceRow;
         Update: Partial<ChallanSequenceRow>;
+        Relationships: [];
+      };
+      challan_payments: {
+        Row: ChallanPaymentRow;
+        Insert: Omit<ChallanPaymentRow, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<ChallanPaymentRow>;
         Relationships: [];
       };
     };

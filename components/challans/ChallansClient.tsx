@@ -14,8 +14,15 @@ import {
   duplicateChallan,
 } from "@/services/challans.service"
 import { getCustomers } from "@/services/customers.service"
-import { Challan, ChallanFilters, ChallanStatus } from "@/types"
+import { Challan, ChallanFilters, ChallanPaymentStatus, ChallanStatus } from "@/types"
 import { DownloadChallanButton } from "@/components/challans/download-button"
+import { PaymentStatusBadge } from "@/components/challans/PaymentStatusBadge"
+import {
+  formatCurrency,
+  getAmountReceived,
+  getChallanTotal,
+  getRemainingBalance,
+} from "@/lib/payment-status"
 import { toast } from "sonner"
 import { DataTable } from "@/components/tables/DataTable"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
@@ -31,6 +38,7 @@ export default function ChallansClient() {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<ChallanStatus | "">("")
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<ChallanPaymentStatus | "">("")
   const [customerFilter, setCustomerFilter] = useState("")
   const [brokerFilter, setBrokerFilter] = useState("")
   const [dateFrom, setDateFrom] = useState("")
@@ -44,6 +52,7 @@ export default function ChallansClient() {
   const filters: ChallanFilters = {
     search,
     status: statusFilter,
+    paymentStatus: paymentStatusFilter,
     customerId: customerFilter,
     broker: brokerFilter,
     dateFrom: dateFrom || undefined,
@@ -69,7 +78,7 @@ export default function ChallansClient() {
 
   useEffect(() => {
     loadChallans()
-  }, [selectedCompany, search, statusFilter, customerFilter, brokerFilter, dateFrom, dateTo])
+  }, [selectedCompany, search, statusFilter, paymentStatusFilter, customerFilter, brokerFilter, dateFrom, dateTo])
 
   const confirmDelete = async () => {
     if (!challanToDelete) return
@@ -121,7 +130,40 @@ export default function ChallansClient() {
     { header: "Date", cell: (c: Challan) => format(new Date(c.date), "dd/MM/yyyy") },
     { header: "Customer", cell: (c: Challan) => c.customer?.name || c.party?.name || "-" },
     { header: "Broker", cell: (c: Challan) => c.broker || "-" },
-    { header: "Total", cell: (c: Challan) => `₹${(c.grand_total ?? 0).toFixed(2)}` },
+    { header: "Total", cell: (c: Challan) => formatCurrency(getChallanTotal(c)) },
+    {
+      header: "Payment Status",
+      cell: (c: Challan) => (
+        <PaymentStatusBadge status={c.payment_status ?? "Pending"} />
+      ),
+    },
+    {
+      header: "Due Date",
+      cell: (c: Challan) =>
+        c.due_date ? format(new Date(c.due_date), "dd/MM/yyyy") : "—",
+    },
+    {
+      header: "Received Date",
+      cell: (c: Challan) =>
+        c.payment_received_date
+          ? format(new Date(c.payment_received_date), "dd/MM/yyyy")
+          : "—",
+    },
+    {
+      header: "Amount Received",
+      cell: (c: Challan) => formatCurrency(getAmountReceived(c)),
+    },
+    {
+      header: "Remaining",
+      cell: (c: Challan) => {
+        const remaining = getRemainingBalance(getChallanTotal(c), getAmountReceived(c))
+        return (
+          <span className={remaining > 0 ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground"}>
+            {formatCurrency(remaining)}
+          </span>
+        )
+      },
+    },
     {
       header: "Status",
       cell: (c: Challan) => (
@@ -133,8 +175,11 @@ export default function ChallansClient() {
       className: "text-right",
       cell: (c: Challan) => (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}/print`)}>
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}`)} title="View details">
             <Eye className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}/print`)} title="Print">
+            <Printer className="h-4 w-4" />
           </Button>
           <DownloadChallanButton challan={c} company={selectedCompany} />
           <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}/edit`)}>
@@ -166,17 +211,27 @@ export default function ChallansClient() {
       />
 
       <Card>
-        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
           <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="xl:col-span-2" />
           <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(!v || v === "all" ? "" : v as ChallanStatus)}>
-            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Delivery status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="all">All delivery status</SelectItem>
               <SelectItem value="Draft">Draft</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Delivered">Delivered</SelectItem>
               <SelectItem value="Returned">Returned</SelectItem>
               <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={paymentStatusFilter || "all"} onValueChange={(v) => setPaymentStatusFilter(!v || v === "all" ? "" : v as ChallanPaymentStatus)}>
+            <SelectTrigger><SelectValue placeholder="Payment status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All payment status</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+              <SelectItem value="Paid">Paid</SelectItem>
+              <SelectItem value="Overdue">Overdue</SelectItem>
             </SelectContent>
           </Select>
           <Select value={customerFilter || "all"} onValueChange={(v) => setCustomerFilter(!v || v === "all" ? "" : v)}>

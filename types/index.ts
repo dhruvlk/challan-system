@@ -84,6 +84,8 @@ export interface ChallanItem {
 
 export type ChallanStatus = 'Draft' | 'Pending' | 'Delivered' | 'Returned' | 'Cancelled';
 
+export type ChallanPaymentStatus = 'Pending' | 'Partially Paid' | 'Paid' | 'Overdue';
+
 export interface Challan {
   id: string;
   company_id: string;
@@ -118,15 +120,36 @@ export interface Challan {
   igst_amount?: number;
   other_charges?: number;
   grand_total?: number;
+  payment_status?: ChallanPaymentStatus;
+  payment_received_date?: string | null;
+  payment_amount_received?: number;
+  payment_reference?: string | null;
+  payment_notes?: string | null;
+  payment_mode?: string | null;
   customer?: Customer;
   /** @deprecated use customer */
   party?: Customer;
   items?: ChallanItem[];
+  payments?: ChallanPayment[];
+}
+
+export interface ChallanPayment {
+  id: string;
+  challan_id: string;
+  company_id: string;
+  amount: number;
+  payment_date: string;
+  payment_mode?: string | null;
+  reference_number?: string | null;
+  notes?: string | null;
+  created_by?: string | null;
+  created_at?: string;
 }
 
 export interface ChallanFilters {
   search?: string;
   status?: ChallanStatus | '';
+  paymentStatus?: ChallanPaymentStatus | '';
   customerId?: string;
   broker?: string;
   dateFrom?: string;

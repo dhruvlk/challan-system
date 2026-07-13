@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/client';
 import { calculateTax, sumItemAmounts } from '@/lib/tax';
+import { resolvePaymentStatus } from '@/lib/payment-status';
 import type {
   Challan,
   ChallanFilters,
   ChallanItem,
+  ChallanPaymentStatus,
   ChallanStatus,
   PaginatedResult,
   PaginationParams,
@@ -20,13 +22,29 @@ const CHALLAN_SELECT = `
 function mapChallan(row: Record<string, unknown>): Challan {
   const customer = row.customer as Challan['customer'];
   const items = (row.items as ChallanItem[] | null) ?? [];
-  return {
+  const challan = {
     ...(row as unknown as Challan),
     customer,
     party: customer,
     customer_id: (row.customer_id as string) ?? (row.party_id as string),
     party_id: (row.customer_id as string) ?? (row.party_id as string),
     items,
+    payment_amount_received: Number(row.payment_amount_received ?? 0),
+  };
+
+  const storedStatus = row.payment_status as ChallanPaymentStatus | undefined;
+  const resolvedStatus = resolvePaymentStatus(challan);
+
+  if (challan.id && storedStatus && storedStatus !== resolvedStatus) {
+    void supabase()
+      .from('challans')
+      .update({ payment_status: resolvedStatus })
+      .eq('id', challan.id);
+  }
+
+  return {
+    ...challan,
+    payment_status: resolvedStatus,
   };
 }
 
@@ -68,6 +86,10 @@ export async function getChallans(
   if (error) throw error;
 
   let challans = (data ?? []).map(mapChallan);
+
+  if (filters.paymentStatus) {
+    challans = challans.filter((c) => c.payment_status === filters.paymentStatus);
+  }
 
   if (filters.search?.trim()) {
     const q = filters.search.trim().toLowerCase();
@@ -120,10 +142,11 @@ export async function getChallanById(id: string): Promise<Challan | undefined> {
     if (error.code === 'PGRST116') return undefined;
     throw error;
   }
+
   return mapChallan(data);
 }
 
-type ChallanInput = Omit<Challan, 'id' | 'created_at' | 'updated_at' | 'customer' | 'party' | 'items'> & {
+type ChallanInput = Omit<Challan, 'id' | 'created_at' | 'updated_at' | 'customer' | 'party' | 'items' | 'payments'> & {
   items: Omit<ChallanItem, 'id' | 'challan_id' | 'created_at' | 'updated_at' | 'product'>[];
 };
 
@@ -201,7 +224,15 @@ export async function addChallan(
 
   const { data, error } = await supabase()
     .from('challans')
-    .insert(payload)
+    .insert({
+      ...payload,
+      payment_status: 'Pending',
+      payment_amount_received: 0,
+      payment_received_date: null,
+      payment_reference: null,
+      payment_notes: null,
+      payment_mode: null,
+    })
     .select('id')
     .single();
 
@@ -221,11 +252,30 @@ export async function addChallan(
 }
 
 export async function updateChallan(challan: Challan & { items: ChallanItem[] }): Promise<Challan> {
+  const existing = await getChallanById(challan.id);
+  if (!existing) throw new Error('Challan not found');
+
   const payload = buildChallanPayload(challan, challan.created_by ?? undefined);
+
+  const grandTotal = payload.grand_total;
+  const received = existing.payment_amount_received ?? 0;
+  const paymentStatus = resolvePaymentStatus({
+    grand_total: grandTotal,
+    payment_amount_received: received,
+    due_date: payload.due_date ?? existing.due_date,
+  });
 
   const { error } = await supabase()
     .from('challans')
-    .update(payload)
+    .update({
+      ...payload,
+      payment_status: paymentStatus,
+      payment_amount_received: received,
+      payment_received_date: existing.payment_received_date,
+      payment_reference: existing.payment_reference,
+      payment_notes: existing.payment_notes,
+      payment_mode: existing.payment_mode,
+    })
     .eq('id', challan.id);
 
   if (error) throw error;
