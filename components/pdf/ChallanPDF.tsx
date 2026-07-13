@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-
 import { Challan, Company, Customer } from '@/types';
 import { numberToWords } from '@/lib/number-to-words';
 import { formatCompanyAddress, getBankDetailRows, parseTerms, itemDescription, resolveHsnCode } from '@/lib/pdf-utils';
+import { getItemPieces, getItemQuantityDisplay } from '@/lib/challan-item';
 
 // Register standard fonts
 Font.register({
@@ -310,7 +311,6 @@ interface ChallanPDFProps {
 export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
   const customer = party ?? challan.customer ?? challan.party;
   const items = challan.items ?? [];
-  const totalMeters = items.reduce((sum, item) => sum + (item.meter ?? item.quantity ?? 0), 0);
   const subtotal = challan.subtotal ?? items.reduce((sum, item) => sum + (item.amount ?? 0), 0);
   const cgst = challan.cgst_amount ?? 0;
   const sgst = challan.sgst_amount ?? 0;
@@ -459,7 +459,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
               <View style={{ padding: 5 }}>
                 {displayItems.map((item, i) => (
                   <View key={i} style={styles.tableRow}>
-                    <Text style={[styles.cellText, { width: '100%', textAlign: 'center' }]}>{item ? '1' : ' '}</Text>
+                    <Text style={[styles.cellText, { width: '100%', textAlign: 'center' }]}>{item ? getItemPieces(item) : ' '}</Text>
                   </View>
                 ))}
               </View>
@@ -470,7 +470,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
               <View style={{ padding: 5 }}>
                 {displayItems.map((item, i) => (
                   <View key={i} style={styles.tableRow}>
-                    <Text style={[styles.cellText, { width: '100%', textAlign: 'center' }]}>{item ? item.meter : ' '}</Text>
+                    <Text style={[styles.cellText, { width: '100%', textAlign: 'center' }]}>{item ? getItemQuantityDisplay(item) : ' '}</Text>
                   </View>
                 ))}
               </View>

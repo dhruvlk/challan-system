@@ -14,7 +14,9 @@ import {
   LogOut,
   Menu,
   PlusCircle,
+  type LucideIcon,
 } from "lucide-react"
+import { FEATURES } from "@/lib/features"
 import { useCompany } from "@/components/company-provider"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -47,14 +49,18 @@ function CompanyBrandLogo({
   )
 }
 
-const navigation = [
+const navigation: { name: string; href: string; icon: LucideIcon; feature?: keyof typeof FEATURES }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Customers", href: "/parties", icon: Users },
-  { name: "Products", href: "/products", icon: Package },
+  { name: "Products", href: "/products", icon: Package, feature: "productsModule" },
   { name: "Challans", href: "/challans", icon: FileText },
   { name: "Reports", href: "/reports", icon: PieChart },
 ]
+
+const visibleNavigation = navigation.filter(
+  (item) => !item.feature || FEATURES[item.feature]
+)
 
 interface SidebarContentProps {
   pathname: string
@@ -86,7 +92,7 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-auto px-3 py-4">
-        {navigation.map((item) => {
+        {visibleNavigation.map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"

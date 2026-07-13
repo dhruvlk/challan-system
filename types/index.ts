@@ -67,7 +67,9 @@ export interface ChallanItem {
   product_id?: string | null;
   description?: string | null;
   quantity?: number | null;
+  quantity_display?: string | null;
   unit?: string | null;
+  total_pieces?: number | null;
   quality?: string | null;
   fabric_name?: string | null;
   color?: string | null;

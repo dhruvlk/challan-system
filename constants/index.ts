@@ -27,6 +27,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   COMPANIES: '/companies',
   PARTIES: '/parties',
+  /** Disabled while FEATURES.productsModule is false */
   PRODUCTS: '/products',
   CHALLANS: '/challans',
   REPORTS: '/reports',

@@ -29,11 +29,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   formatCurrency,
   getAmountReceived,
   getChallanTotal,
   getRemainingBalance,
 } from "@/lib/payment-status"
+import { getItemPieces, getItemQuantityDisplay } from "@/lib/challan-item"
+import { itemDescription } from "@/lib/pdf-utils"
 import { getChallanPayments } from "@/services/challan-payments.service"
 import { getChallanById } from "@/services/challans.service"
 import type { Challan, ChallanPayment } from "@/types"
@@ -297,6 +307,57 @@ export default function ChallanDetailClient({ id }: { id: string }) {
             </CardHeader>
             <CardContent>
               <PaymentTimeline payments={payments} />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={staggerItem} className="lg:col-span-2">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                Challan Items
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(challan.items?.length ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">No line items on this challan.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Pieces</TableHead>
+                        <TableHead className="text-right">Total Mts./Kgs</TableHead>
+                        <TableHead className="text-right">Rate</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {challan.items?.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">
+                            {itemDescription(item) || "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {getItemPieces(item)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {getItemQuantityDisplay(item)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.rate != null ? formatCurrency(item.rate) : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.amount != null ? formatCurrency(item.amount) : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

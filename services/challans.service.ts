@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { parseQuantityNumeric } from '@/lib/challan-item';
 import { calculateTax, sumItemAmounts } from '@/lib/tax';
 import { resolvePaymentStatus } from '@/lib/payment-status';
 import type {
@@ -197,18 +198,26 @@ function buildChallanPayload(
 }
 
 function buildItemPayload(item: Omit<ChallanItem, 'id' | 'challan_id' | 'created_at' | 'updated_at' | 'product'>) {
+  const quantityDisplay = item.quantity_display?.trim() || null;
+  const numericQty =
+    quantityDisplay != null
+      ? parseQuantityNumeric(quantityDisplay)
+      : item.meter ?? item.quantity ?? null;
+
   return {
     product_id: item.product_id ?? null,
     description: item.description ?? null,
-    quantity: item.quantity ?? item.meter ?? null,
-    unit: item.unit ?? 'Mtrs',
+    quantity: numericQty,
+    quantity_display: quantityDisplay,
+    unit: null,
+    total_pieces: item.total_pieces ?? 1,
     quality: item.quality ?? null,
     fabric_name: item.fabric_name ?? null,
     color: item.color ?? null,
     design: item.design ?? null,
     roll_number: item.roll_number ?? null,
     lot_number: item.lot_number ?? null,
-    meter: item.meter ?? item.quantity ?? null,
+    meter: numericQty,
     weight: item.weight ?? null,
     rate: item.rate ?? null,
     amount: item.amount ?? null,

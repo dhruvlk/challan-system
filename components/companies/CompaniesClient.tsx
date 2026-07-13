@@ -32,7 +32,7 @@ export default function CompaniesClient() {
         <EmptyState
           icon={Building2}
           title="No companies yet"
-          description="Create your first company to start managing challans, customers, and products."
+          description="Create your first company to start managing challans and customers."
           action={
             <Button onClick={() => router.push("/companies/new")}>
               <PlusCircle className="mr-2 h-4 w-4" />

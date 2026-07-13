@@ -20,6 +20,7 @@ import { getCustomers } from "@/services/customers.service"
 import { addChallan, updateChallan, generateChallanNumber } from "@/services/challans.service"
 import { useAuth } from "@/hooks/useAuth"
 import { Customer, Challan, ChallanItem, ChallanStatus } from "@/types"
+import { getItemQuantityDisplay, parseQuantityNumeric } from "@/lib/challan-item"
 import { calculateDueDate } from "@/utils/calculateDueDate"
 import { PageHeader } from "@/components/common/PageHeader"
 import { format } from "date-fns"
@@ -31,7 +32,8 @@ const itemSchema = z.object({
   design: z.string().optional(),
   roll_number: z.string().optional(),
   lot_number: z.string().optional(),
-  meter: z.coerce.number().min(0).optional(),
+  total_pieces: z.coerce.number().min(1, "At least 1 piece"),
+  quantity_display: z.string().min(1, "Quantity is required"),
   weight: z.coerce.number().min(0).optional(),
   rate: z.coerce.number().min(0).optional(),
   amount: z.coerce.number().min(0).optional(),
@@ -91,12 +93,13 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         design: i.design || "",
         roll_number: i.roll_number || "",
         lot_number: i.lot_number || "",
-        meter: i.meter || 0,
+        total_pieces: i.total_pieces ?? 1,
+        quantity_display: getItemQuantityDisplay(i),
         weight: i.weight || 0,
         rate: i.rate || 0,
         amount: i.amount || 0,
         remarks: i.remarks || ""
-      })) : [{ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 }]
+      })) : [{ quality: '', total_pieces: 1, quantity_display: '', weight: 0, rate: 0, amount: 0 }]
     } : {
       challan_number: "",
       bill_number: "",
@@ -107,7 +110,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
       due_date: "",
       amount_in_words: "",
       status: 'Draft',
-      items: [{ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 }]
+      items: [{ quality: '', total_pieces: 1, quantity_display: '', weight: 0, rate: 0, amount: 0 }]
     }
   })
 
@@ -122,12 +125,11 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
   const paymentValue = form.watch("payment_within_value")
   const paymentUnit = form.watch("payment_within_unit")
   
-  const totals = items.reduce((acc: { rolls: number, meter: number, weight: number, amount: number }, item) => ({
-    rolls: acc.rolls + 1,
-    meter: acc.meter + (Number(item.meter) || 0),
+  const totals = items.reduce((acc, item) => ({
+    pieces: acc.pieces + (Number(item.total_pieces) || 0),
     weight: acc.weight + (Number(item.weight) || 0),
-    amount: acc.amount + (Number(item.amount) || 0)
-  }), { rolls: 0, meter: 0, weight: 0, amount: 0 })
+    amount: acc.amount + (Number(item.amount) || 0),
+  }), { pieces: 0, weight: 0, amount: 0 })
 
   useEffect(() => {
     async function fetchParties() {
@@ -400,7 +402,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
             <CardTitle>Items</CardTitle>
             <CardDescription>Add items to this challan</CardDescription>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => append({ quality: '', meter: 0, weight: 0, rate: 0, amount: 0 })}>
+          <Button type="button" variant="outline" size="sm" onClick={() => append({ quality: '', total_pieces: 1, quantity_display: '', weight: 0, rate: 0, amount: 0 })}>
             <Plus className="mr-2 h-4 w-4" />
             Add Row
           </Button>
@@ -410,23 +412,24 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[150px]">Quality</TableHead>
+                  <TableHead className="w-[130px]">Quality</TableHead>
                   <TableHead>Fabric</TableHead>
                   <TableHead>Color</TableHead>
-                  <TableHead className="w-[100px]">Meters</TableHead>
-                  <TableHead className="w-[100px]">Weight</TableHead>
-                  <TableHead className="w-[100px]">Rate</TableHead>
-                  <TableHead className="w-[120px]">Amount</TableHead>
+                  <TableHead className="w-[90px]">Pieces</TableHead>
+                  <TableHead className="w-[140px]">Total Mts./Kgs</TableHead>
+                  <TableHead className="w-[80px]">Weight</TableHead>
+                  <TableHead className="w-[90px]">Rate</TableHead>
+                  <TableHead className="w-[110px]">Amount</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {fields.map((field, index) => {
-                  const m = form.watch(`items.${index}.meter`) || 0
+                  const qtyText = form.watch(`items.${index}.quantity_display`) || ""
                   const r = form.watch(`items.${index}.rate`) || 0
-                  // Auto calc amount
-                  if (m * r !== form.getValues(`items.${index}.amount`)) {
-                     form.setValue(`items.${index}.amount`, m * r)
+                  const qtyNum = parseQuantityNumeric(qtyText)
+                  if (qtyNum * r !== form.getValues(`items.${index}.amount`)) {
+                     form.setValue(`items.${index}.amount`, qtyNum * r)
                   }
 
                   return (
@@ -441,7 +444,14 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
                         <Input {...form.register(`items.${index}.color`)} className="h-8" />
                       </TableCell>
                       <TableCell className="p-2">
-                        <Input type="number" step="0.01" {...form.register(`items.${index}.meter`)} className="h-8" />
+                        <Input type="number" step="1" min="1" {...form.register(`items.${index}.total_pieces`)} className="h-8" />
+                      </TableCell>
+                      <TableCell className="p-2">
+                        <Input
+                          {...form.register(`items.${index}.quantity_display`)}
+                          className="h-8"
+                          placeholder="e.g. 4500 Mts"
+                        />
                       </TableCell>
                       <TableCell className="p-2">
                         <Input type="number" step="0.01" {...form.register(`items.${index}.weight`)} className="h-8" />
@@ -467,12 +477,8 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
           <div className="mt-4 flex justify-end">
             <div className="w-[300px] space-y-2 rounded-lg border p-4 bg-muted/50">
               <div className="flex justify-between text-sm">
-                <span>Total Rolls:</span>
-                <span className="font-medium">{totals.rolls}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Total Meters:</span>
-                <span className="font-medium">{totals.meter.toFixed(2)}</span>
+                <span>Total Pieces:</span>
+                <span className="font-medium">{totals.pieces}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Total Weight:</span>
