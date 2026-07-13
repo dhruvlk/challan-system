@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { Company } from "@/types"
 import { PageHeader } from "@/components/common/PageHeader"
+import { CompanyAvatar } from "@/components/companies/CompanyAvatar"
 import { getCompanyById, updateCompany, uploadCompanyLogo } from "@/services/companies.service"
 
 export default function CompanyEditClient({ id }: { id: string }) {
@@ -22,6 +23,16 @@ export default function CompanyEditClient({ id }: { id: string }) {
   const [isLoading, setIsLoading] = useState(false)
   const [company, setCompany] = useState<Company | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
+  const logoPreviewUrl = useMemo(
+    () => (logoFile ? URL.createObjectURL(logoFile) : null),
+    [logoFile]
+  )
+
+  useEffect(() => {
+    return () => {
+      if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl)
+    }
+  }, [logoPreviewUrl])
 
   useEffect(() => {
     async function load() {
@@ -112,9 +123,19 @@ export default function CompanyEditClient({ id }: { id: string }) {
                 <Label htmlFor="tagline">Tagline</Label>
                 <Input id="tagline" name="tagline" defaultValue={company.tagline || ""} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="logo">Logo</Label>
-                <Input id="logo" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} />
+              <div className="flex items-center gap-4">
+                <CompanyAvatar
+                  name={company.name}
+                  logoUrl={logoPreviewUrl ?? company.logo_url}
+                  size="sidebar"
+                />
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="logo">Logo</Label>
+                  <Input id="logo" type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} />
+                  <p className="text-xs text-muted-foreground">
+                    Upload a logo or leave blank to use initials automatically.
+                  </p>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">

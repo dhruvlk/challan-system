@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { useCompany } from "@/components/company-provider"
 import { Button } from "@/components/ui/button"
@@ -13,6 +12,7 @@ import {
 import { Moon, Sun, Building2, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
+import { useIsClient } from "@/hooks/useIsClient"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 
@@ -21,13 +21,11 @@ export function Header() {
   const { selectedCompany, companies, setSelectedCompany } = useCompany()
   const { user } = useAuth()
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const isClient = useIsClient()
   const hasMultipleCompanies = companies.length > 1
   const canManageCompanies = user?.role === 'Owner' || user?.role === 'Admin'
 
-  useEffect(() => setMounted(true), [])
-
-  const isDark = mounted && resolvedTheme === "dark"
+  const isDark = isClient && resolvedTheme === "dark"
 
   const companyLabel = (
     <>

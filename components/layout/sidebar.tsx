@@ -22,32 +22,8 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
 import { LogoutDialog } from "@/components/auth/LogoutDialog"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { CompanyAvatar } from "@/components/companies/CompanyAvatar"
 import type { Company } from "@/types"
-
-function CompanyBrandLogo({
-  name,
-  logoUrl,
-}: {
-  name?: string
-  logoUrl?: string | null
-}) {
-  return (
-    <Avatar className="h-20 w-20 shrink-0 rounded-lg shadow-soft after:rounded-lg">
-      {logoUrl ? (
-        <AvatarImage
-          key={logoUrl}
-          src={logoUrl}
-          alt={name ? `${name} logo` : "Company logo"}
-          className="rounded-lg object-cover"
-        />
-      ) : null}
-      <AvatarFallback className="rounded-lg border-0 gradient-primary text-white">
-        <FileText className="h-4 w-4" />
-      </AvatarFallback>
-    </Avatar>
-  )
-}
 
 const navigation: { name: string; href: string; icon: LucideIcon; feature?: keyof typeof FEATURES }[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -77,16 +53,29 @@ function SidebarContent({
 }: SidebarContentProps) {
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <div className="border-b border-sidebar-border px-5 py-5">
-        <Link href="/" className="flex items-center gap-3" onClick={onNavigate}>
-          <CompanyBrandLogo
-            name={selectedCompany?.name}
+      <div className="border-b border-sidebar-border px-4 py-4">
+        <Link
+          href="/"
+          className="group flex items-center gap-3.5 rounded-xl p-2 transition-colors hover:bg-sidebar-accent/60"
+          onClick={onNavigate}
+        >
+          <CompanyAvatar
+            name={selectedCompany?.name ?? "Company"}
             logoUrl={selectedCompany?.logo_url}
+            size="sidebar"
+            interactive
           />
-          <div className="min-w-0">
-            <p className="truncate text-[20px] font-semibold tracking-tight">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-semibold leading-tight tracking-tight text-sidebar-foreground">
               {selectedCompany?.name ?? "Select company"}
             </p>
+            {selectedCompany?.gst_number ? (
+              <p className="mt-1 truncate text-xs text-muted-foreground">
+                GST {selectedCompany.gst_number}
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">Company workspace</p>
+            )}
           </div>
         </Link>
       </div>

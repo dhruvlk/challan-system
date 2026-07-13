@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/common/PageHeader"
 import { EmptyState } from "@/components/common/EmptyState"
 import { MotionStagger, MotionStaggerItem } from "@/components/common/motion"
+import { CompanyAvatar } from "@/components/companies/CompanyAvatar"
 import { cn } from "@/lib/utils"
 
 export default function CompaniesClient() {
@@ -46,22 +47,27 @@ export default function CompaniesClient() {
             <MotionStaggerItem key={company.id}>
               <Card
                 className={cn(
-                  "cursor-pointer transition-all duration-200 hover:shadow-elevated",
+                  "group cursor-pointer transition-all duration-200 hover:shadow-elevated",
                   selectedCompany?.id === company.id && "border-primary/40 ring-1 ring-primary/20"
                 )}
                 onClick={() => setSelectedCompany(company)}
               >
-                <CardHeader className="flex flex-row items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <Building2 className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="truncate">{company.name}</span>
-                    </CardTitle>
-                    <CardDescription className="line-clamp-1">
-                      {company.gst_number ? `GST: ${company.gst_number}` : "No GST provided"}
-                    </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <CompanyAvatar
+                      name={company.name}
+                      logoUrl={company.logo_url}
+                      size="card"
+                      interactive
+                    />
+                    <div className="min-w-0 space-y-0.5">
+                      <CardTitle className="truncate text-base font-semibold leading-tight">
+                        {company.name}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-1 text-xs">
+                        {company.gst_number ? `GST: ${company.gst_number}` : "No GST provided"}
+                      </CardDescription>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
