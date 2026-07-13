@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import { PageHeader } from "@/components/common/PageHeader"
-import { addCompany, uploadCompanyLogo } from "@/services/companies.service"
+import { addCompany, updateCompany, uploadCompanyLogo } from "@/services/companies.service"
 
 export default function CompanyNewClient() {
   const router = useRouter()
@@ -32,15 +32,10 @@ export default function CompanyNewClient() {
     const formData = new FormData(e.currentTarget)
 
     try {
-      let logoUrl: string | null = null
-      if (logoFile) {
-        logoUrl = await uploadCompanyLogo(user.id, logoFile)
-      }
-
       const newCompany = await addCompany({
         user_id: user.id,
         name: formData.get("name") as string,
-        logo_url: logoUrl,
+        logo_url: null,
         gst_number: (formData.get("gst_number") as string) || null,
         hsn_code: (formData.get("hsn_code") as string) || null,
         address: (formData.get("address") as string) || null,
@@ -63,10 +58,16 @@ export default function CompanyNewClient() {
         is_active: companies.length === 0,
       })
 
+      let finalCompany = newCompany
+      if (logoFile) {
+        const logoUrl = await uploadCompanyLogo(newCompany.id, logoFile)
+        finalCompany = await updateCompany({ ...newCompany, logo_url: logoUrl })
+      }
+
       toast.success("Company created successfully!")
       await refreshCompanies()
-      setCompanies([newCompany, ...companies])
-      setSelectedCompany(newCompany)
+      setCompanies([finalCompany, ...companies])
+      setSelectedCompany(finalCompany)
       router.push("/companies")
     } catch {
       toast.error("Failed to create company")

@@ -17,7 +17,7 @@ interface CompanyContextType {
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined)
 
 export function CompanyProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [companies, setCompanies] = useState<Company[]>([])
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -37,9 +37,12 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
 
       const storedId = await getSelectedCompanyId()
       const active = storedCompanies.find((c) => c.is_active)
+      const membershipCompany = user?.companyId
+        ? storedCompanies.find((c) => c.id === user.companyId)
+        : undefined
       const found = storedId
         ? storedCompanies.find((c) => c.id === storedId)
-        : active ?? storedCompanies[0]
+        : membershipCompany ?? active ?? storedCompanies[0]
 
       setSelectedCompany(found ?? storedCompanies[0] ?? null)
     } catch {
@@ -52,7 +55,7 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshCompanies()
-  }, [isAuthenticated])
+  }, [isAuthenticated, user?.companyId])
 
   const handleSetSelectedCompany = async (company: Company | null) => {
     setSelectedCompany(company)

@@ -1,8 +1,23 @@
+import { USER_ROLES, type UserRole } from '@/constants/auth';
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  role?: string;
+  mobile?: string | null;
+  role: UserRole;
+  companyId?: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface RegisterCompanyInput {
+  companyName: string;
+  ownerName: string;
+  email: string;
+  mobile: string;
+  gstNumber?: string;
+  address?: string;
+  password: string;
 }
 
 export interface AuthContextType {
@@ -10,5 +25,16 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (input: RegisterCompanyInput) => Promise<{
+    error?: string;
+    requiresConfirmation?: boolean;
+  }>;
+  requestPasswordReset: (email: string) => Promise<{ error?: string }>;
+  updatePassword: (password: string) => Promise<{ error?: string }>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+}
+
+export function isUserRole(value: string | undefined | null): value is UserRole {
+  return !!value && (USER_ROLES as readonly string[]).includes(value);
 }

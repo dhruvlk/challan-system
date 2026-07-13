@@ -7,9 +7,24 @@ const supabase = () => createClient();
 const SELECTED_KEY = 'challan_system_selected_company_id';
 
 export async function getCompanies(): Promise<Company[]> {
+  const { data: { user } } = await supabase().auth.getUser();
+  if (!user) return [];
+
+  const { data: memberships, error: membershipError } = await supabase()
+    .from('company_members')
+    .select('company_id')
+    .eq('user_id', user.id)
+    .eq('is_active', true);
+
+  if (membershipError) throw membershipError;
+
+  const companyIds = (memberships ?? []).map((m) => m.company_id);
+  if (companyIds.length === 0) return [];
+
   const { data, error } = await supabase()
     .from('companies')
     .select('*')
+    .in('id', companyIds)
     .order('name');
 
   if (error) throw error;
@@ -84,9 +99,9 @@ export async function deleteCompany(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function uploadCompanyLogo(userId: string, file: File): Promise<string> {
+export async function uploadCompanyLogo(companyId: string, file: File): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'png';
-  const path = `${userId}/${Date.now()}.${ext}`;
+  const path = `${companyId}/${Date.now()}.${ext}`;
 
   const { error } = await supabase().storage.from('company-logos').upload(path, file, {
     upsert: true,

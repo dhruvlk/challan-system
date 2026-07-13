@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Moon, Sun, Building2, Check, PlusCircle } from "lucide-react"
+import { Moon, Sun, Building2, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -22,44 +22,65 @@ export function Header() {
   const { user } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const hasMultipleCompanies = companies.length > 1
+  const canManageCompanies = user?.role === 'Owner' || user?.role === 'Admin'
 
   useEffect(() => setMounted(true), [])
 
   const isDark = mounted && resolvedTheme === "dark"
 
+  const companyLabel = (
+    <>
+      <Building2 className="h-4 w-4 shrink-0 text-primary" />
+      <span className="truncate text-sm">{selectedCompany?.name || "Your company"}</span>
+    </>
+  )
+
   return (
     <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-end gap-2 border-b border-border/60 glass px-4 md:gap-3 md:px-6">
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="outline"
-              className="h-9 max-w-[220px] gap-2 px-3 shadow-xs"
-            />
-          }
+      {hasMultipleCompanies ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="outline"
+                className="h-9 max-w-[220px] gap-2 px-3 shadow-xs"
+              />
+            }
+          >
+            {companyLabel}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {companies.map((company) => (
+              <DropdownMenuItem
+                key={company.id}
+                onClick={() => setSelectedCompany(company)}
+                className="gap-2"
+              >
+                <span className="flex-1 truncate">{company.name}</span>
+                {selectedCompany?.id === company.id && (
+                  <Check className="h-4 w-4 shrink-0 text-primary" />
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-border/60 bg-card px-3 shadow-xs">
+          {companyLabel}
+        </div>
+      )}
+
+      {canManageCompanies && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="hidden h-9 md:inline-flex"
+          onClick={() => router.push("/companies")}
         >
-          <Building2 className="h-4 w-4 shrink-0 text-primary" />
-          <span className="truncate text-sm">{selectedCompany?.name || "Select company"}</span>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          {companies.map((company) => (
-            <DropdownMenuItem
-              key={company.id}
-              onClick={() => setSelectedCompany(company)}
-              className="gap-2"
-            >
-              <span className="flex-1 truncate">{company.name}</span>
-              {selectedCompany?.id === company.id && (
-                <Check className="h-4 w-4 shrink-0 text-primary" />
-              )}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuItem onClick={() => router.push("/companies/new")}>
-            <PlusCircle className="h-4 w-4" />
-            New company
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          Company settings
+        </Button>
+      )}
 
       <button
         type="button"
@@ -86,7 +107,9 @@ export function Header() {
           </Avatar>
           <div className="hidden min-w-0 md:block">
             <p className="truncate text-sm font-medium leading-none">{user.name}</p>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{user.email}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {user.role} · {user.email}
+            </p>
           </div>
         </div>
       )}

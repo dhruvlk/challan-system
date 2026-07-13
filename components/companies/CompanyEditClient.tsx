@@ -44,8 +44,8 @@ export default function CompanyEditClient({ id }: { id: string }) {
 
     try {
       let logoUrl = company.logo_url ?? null
-      if (logoFile && user) {
-        logoUrl = await uploadCompanyLogo(user.id, logoFile)
+      if (logoFile) {
+        logoUrl = await uploadCompanyLogo(company.id, logoFile)
       }
 
       const updatedCompany: Company = {

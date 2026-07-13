@@ -6,6 +6,25 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export type CompanyMemberRow = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProfileRow = {
+  id: string;
+  full_name: string;
+  mobile: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CompanyRow = {
   id: string;
   user_id: string;
@@ -215,12 +234,53 @@ export interface Database {
         Update: Partial<ChallanPaymentRow>;
         Relationships: [];
       };
+      profiles: {
+        Row: ProfileRow;
+        Insert: Omit<ProfileRow, 'created_at' | 'updated_at'> & {
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<ProfileRow>;
+        Relationships: [];
+      };
+      company_members: {
+        Row: CompanyMemberRow;
+        Insert: Omit<CompanyMemberRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<CompanyMemberRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
       generate_challan_number: {
         Args: { p_company_id: string };
         Returns: string;
+      };
+      register_company_account: {
+        Args: {
+          p_company_name: string;
+          p_owner_name: string;
+          p_mobile: string;
+          p_gst_number?: string | null;
+          p_address?: string | null;
+        };
+        Returns: string;
+      };
+      provision_pending_company_account: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      user_belongs_to_company: {
+        Args: { p_company_id: string };
+        Returns: boolean;
+      };
+      user_company_role: {
+        Args: { p_company_id: string };
+        Returns: string | null;
       };
     };
     Enums: Record<string, never>;

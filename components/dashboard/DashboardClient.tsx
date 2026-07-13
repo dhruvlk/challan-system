@@ -67,10 +67,10 @@ export default function DashboardClient() {
     return (
       <EmptyState
         icon={Building2}
-        title="Welcome to Challan System"
-        description="Select a company from the header or create one to start managing delivery challans."
+        title="Workspace not ready"
+        description="Your company workspace is still being provisioned. Try refreshing, or contact support if this persists."
         action={
-          <Button render={<Link href="/companies/new" />}>Create company</Button>
+          <Button onClick={() => window.location.reload()}>Refresh</Button>
         }
       />
     )

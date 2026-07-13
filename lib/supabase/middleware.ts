@@ -28,11 +28,16 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login');
+  const authRoutes = ['/login', '/register'];
+  const publicAuthRoutes = ['/forgot-password', '/reset-password'];
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  const isPublicAuthRoute = publicAuthRoutes.some((route) => pathname.startsWith(route));
   const isProtected =
     !isAuthRoute &&
-    !request.nextUrl.pathname.startsWith('/_next') &&
-    !request.nextUrl.pathname.includes('.');
+    !isPublicAuthRoute &&
+    !pathname.startsWith('/_next') &&
+    !pathname.includes('.');
 
   if (!user && isProtected) {
     const url = request.nextUrl.clone();

@@ -1,19 +1,21 @@
 "use client"
 
 import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { User, AuthContextType } from '@/types/auth';
+import { User, AuthContextType, RegisterCompanyInput } from '@/types/auth';
 import { createClient } from '@/lib/supabase/client';
+import { buildAppUser } from '@/lib/user-session';
+import { getProfile } from '@/services/profiles.service';
+import { getPrimaryMembership } from '@/services/company-members.service';
+import {
+  provisionPendingCompanyAccount,
+  registerCompanyAccount,
+  requestPasswordReset,
+  signInWithEmail,
+  signOut,
+  updatePassword,
+} from '@/services/auth.service';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-function mapUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }): User {
-  return {
-    id: supabaseUser.id,
-    email: supabaseUser.email ?? '',
-    name: (supabaseUser.user_metadata?.name as string) || supabaseUser.email?.split('@')[0] || 'User',
-    role: (supabaseUser.user_metadata?.role as string) || 'User',
-  };
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -21,18 +23,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
+  const hydrateUser = useCallback(async (authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }) => {
+    const [profile, membership] = await Promise.all([
+      getProfile(authUser.id),
+      getPrimaryMembership(authUser.id),
+    ]);
+    return buildAppUser(authUser, profile, membership);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      setUser(null);
+      setIsAuthenticated(false);
+      return;
+    }
+    const appUser = await hydrateUser(authUser);
+    setUser(appUser);
+    setIsAuthenticated(true);
+  }, [hydrateUser, supabase]);
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
-      if (authUser) {
-        setUser(mapUser(authUser));
+    let mounted = true;
+
+    async function init() {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser && mounted) {
+        await provisionPendingCompanyAccount().catch(() => undefined);
+        const appUser = await hydrateUser(authUser);
+        setUser(appUser);
         setIsAuthenticated(true);
       }
-      setIsLoading(false);
-    });
+      if (mounted) setIsLoading(false);
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    init();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        setUser(mapUser(session.user));
+        await provisionPendingCompanyAccount().catch(() => undefined);
+        const appUser = await hydrateUser(session.user);
+        setUser(appUser);
         setIsAuthenticated(true);
       } else {
         setUser(null);
@@ -41,31 +72,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [hydrateUser, supabase]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
-  }, [supabase]);
+    try {
+      await signInWithEmail(email, password);
+      await refreshUser();
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Login failed' };
+    }
+  }, [refreshUser]);
+
+  const register = useCallback(async (input: RegisterCompanyInput) => {
+    try {
+      const result = await registerCompanyAccount(input);
+      if (!result.requiresConfirmation) {
+        await refreshUser();
+      }
+      return { requiresConfirmation: result.requiresConfirmation };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Registration failed' };
+    }
+  }, [refreshUser]);
+
+  const handleRequestPasswordReset = useCallback(async (email: string) => {
+    try {
+      await requestPasswordReset(email);
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to send reset email' };
+    }
+  }, []);
+
+  const handleUpdatePassword = useCallback(async (password: string) => {
+    try {
+      await updatePassword(password);
+      return {};
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to update password' };
+    }
+  }, []);
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    await signOut();
     setUser(null);
     setIsAuthenticated(false);
-  }, [supabase]);
+  }, []);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex min-h-screen items-center justify-center bg-muted/20">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
       </div>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoading,
+        login,
+        register,
+        requestPasswordReset: handleRequestPasswordReset,
+        updatePassword: handleUpdatePassword,
+        logout,
+        refreshUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
