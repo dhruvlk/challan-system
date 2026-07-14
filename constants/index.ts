@@ -30,6 +30,7 @@ export const ROUTES = {
   /** Disabled while FEATURES.productsModule is false */
   PRODUCTS: '/products',
   CHALLANS: '/challans',
+  DELIVERY_CHALLANS: '/delivery-challans',
   REPORTS: '/reports',
   SETTINGS: '/settings'
 }

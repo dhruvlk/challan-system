@@ -1,0 +1,297 @@
+import { createClient } from '@/lib/supabase/client';
+import type {
+  Customer,
+  DeliveryChallan,
+  DeliveryChallanFilters,
+  DeliveryChallanItem,
+  DeliveryChallanStatus,
+} from '@/types';
+
+const supabase = () => createClient();
+
+const SELECT = `
+  *,
+  customer:customers(*),
+  items:delivery_challan_items(*)
+`;
+
+function mapDeliveryChallan(row: Record<string, unknown>): DeliveryChallan {
+  const customer = row.customer as Customer | undefined;
+  const rawItems = (row.items as DeliveryChallanItem[] | null) ?? [];
+  const items = [...rawItems]
+    .map((item, index) => ({
+      ...item,
+      sort_order: Number(item.sort_order ?? index),
+      taka_no: item.taka_no ?? null,
+      meters: Number(item.meters) || 0,
+      weight: Number(item.weight) || 0,
+    }))
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  return {
+    ...(row as unknown as DeliveryChallan),
+    customer,
+    items,
+    total_pieces: Number(row.total_pieces ?? items.length),
+    total_meters: Number(row.total_meters ?? 0),
+    total_weight: Number(row.total_weight ?? 0),
+  };
+}
+
+type DeliveryChallanRpcClient = {
+  rpc(
+    fn: 'generate_delivery_challan_number',
+    args: { p_company_id: string }
+  ): PromiseLike<{ data: string | null; error: { message: string } | null }>;
+};
+
+export async function generateDeliveryChallanNumber(companyId: string): Promise<string> {
+  const { data, error } = await (supabase() as unknown as DeliveryChallanRpcClient).rpc(
+    'generate_delivery_challan_number',
+    { p_company_id: companyId }
+  );
+  if (error) throw error;
+  if (!data) throw new Error('Failed to generate delivery challan number');
+  return data;
+}
+
+export async function getDeliveryChallans(
+  companyId: string,
+  filters: DeliveryChallanFilters = {}
+): Promise<DeliveryChallan[]> {
+  let query = supabase()
+    .from('delivery_challans')
+    .select(SELECT)
+    .eq('company_id', companyId)
+    .order('created_at', { ascending: false });
+
+  if (filters.status) query = query.eq('status', filters.status);
+  if (filters.customerId) query = query.eq('customer_id', filters.customerId);
+  if (filters.broker) query = query.ilike('broker', `%${filters.broker}%`);
+  if (filters.dateFrom) query = query.gte('date', filters.dateFrom);
+  if (filters.dateTo) query = query.lte('date', filters.dateTo);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  let rows = (data ?? []).map(mapDeliveryChallan);
+
+  if (filters.search?.trim()) {
+    const q = filters.search.trim().toLowerCase();
+    rows = rows.filter(
+      (row) =>
+        row.challan_number.toLowerCase().includes(q) ||
+        row.customer?.name?.toLowerCase().includes(q) ||
+        row.broker?.toLowerCase().includes(q) ||
+        row.quality?.toLowerCase().includes(q)
+    );
+  }
+
+  return rows;
+}
+
+export async function getDeliveryChallanById(id: string): Promise<DeliveryChallan | null> {
+  const { data, error } = await supabase()
+    .from('delivery_challans')
+    .select(SELECT)
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  const mapped = mapDeliveryChallan(data);
+
+  // Fallback: nested embed can occasionally return [] even when rows exist
+  if (!mapped.items?.length) {
+    const { data: itemRows, error: itemsError } = await supabase()
+      .from('delivery_challan_items')
+      .select('*')
+      .eq('delivery_challan_id', id)
+      .order('sort_order', { ascending: true });
+
+    if (itemsError) throw itemsError;
+
+    if (itemRows?.length) {
+      mapped.items = itemRows.map((row) => ({
+        id: row.id,
+        delivery_challan_id: row.delivery_challan_id,
+        sort_order: Number(row.sort_order ?? 0),
+        taka_no: row.taka_no,
+        meters: Number(row.meters) || 0,
+        weight: Number(row.weight) || 0,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }));
+      mapped.total_pieces = mapped.items.length;
+      mapped.total_meters = mapped.items.reduce((sum, item) => sum + Number(item.meters || 0), 0);
+      mapped.total_weight = mapped.items.reduce((sum, item) => sum + Number(item.weight || 0), 0);
+    }
+  }
+
+  return mapped;
+}
+
+type DeliveryChallanInput = {
+  company_id: string;
+  customer_id: string;
+  challan_number: string;
+  date: string;
+  quality?: string | null;
+  broker?: string | null;
+  delivered_by?: string | null;
+  remarks?: string | null;
+  notes?: string | null;
+  status: DeliveryChallanStatus;
+  items: Array<{
+    taka_no?: string | null;
+    meters?: number | null;
+    weight?: number | null;
+  }>;
+};
+
+function computeTotals(items: DeliveryChallanInput['items']) {
+  const normalized = items.map((item, index) => ({
+    sort_order: index,
+    taka_no: item.taka_no?.trim() || null,
+    meters: Number(item.meters) || 0,
+    weight: Number(item.weight) || 0,
+  }));
+
+  return {
+    items: normalized,
+    total_pieces: normalized.length,
+    total_meters: normalized.reduce((sum, item) => sum + item.meters, 0),
+    total_weight: normalized.reduce((sum, item) => sum + item.weight, 0),
+  };
+}
+
+export async function addDeliveryChallan(
+  input: DeliveryChallanInput,
+  userId?: string
+): Promise<DeliveryChallan> {
+  const totals = computeTotals(input.items);
+
+  const { data, error } = await supabase()
+    .from('delivery_challans')
+    .insert({
+      company_id: input.company_id,
+      customer_id: input.customer_id,
+      challan_number: input.challan_number,
+      date: input.date,
+      quality: input.quality ?? null,
+      broker: input.broker ?? null,
+      delivered_by: input.delivered_by ?? null,
+      remarks: input.remarks ?? null,
+      notes: input.notes ?? null,
+      status: input.status,
+      total_pieces: totals.total_pieces,
+      total_meters: totals.total_meters,
+      total_weight: totals.total_weight,
+      created_by: userId ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  const itemsPayload = totals.items.map((item) => ({
+    ...item,
+    delivery_challan_id: data.id,
+  }));
+
+  if (itemsPayload.length > 0) {
+    const { error: itemsError } = await supabase()
+      .from('delivery_challan_items')
+      .insert(itemsPayload);
+    if (itemsError) throw itemsError;
+  }
+
+  const created = await getDeliveryChallanById(data.id);
+  if (!created) throw new Error('Failed to load created delivery challan');
+  return created;
+}
+
+export async function updateDeliveryChallan(
+  id: string,
+  input: DeliveryChallanInput
+): Promise<DeliveryChallan> {
+  const totals = computeTotals(input.items);
+
+  const { error } = await supabase()
+    .from('delivery_challans')
+    .update({
+      customer_id: input.customer_id,
+      challan_number: input.challan_number,
+      date: input.date,
+      quality: input.quality ?? null,
+      broker: input.broker ?? null,
+      delivered_by: input.delivered_by ?? null,
+      remarks: input.remarks ?? null,
+      notes: input.notes ?? null,
+      status: input.status,
+      total_pieces: totals.total_pieces,
+      total_meters: totals.total_meters,
+      total_weight: totals.total_weight,
+    })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  await supabase().from('delivery_challan_items').delete().eq('delivery_challan_id', id);
+
+  const itemsPayload = totals.items.map((item) => ({
+    ...item,
+    delivery_challan_id: id,
+  }));
+
+  if (itemsPayload.length > 0) {
+    const { error: itemsError } = await supabase()
+      .from('delivery_challan_items')
+      .insert(itemsPayload);
+    if (itemsError) throw itemsError;
+  }
+
+  const updated = await getDeliveryChallanById(id);
+  if (!updated) throw new Error('Failed to load updated delivery challan');
+  return updated;
+}
+
+export async function deleteDeliveryChallan(id: string): Promise<void> {
+  const { error } = await supabase().from('delivery_challans').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function duplicateDeliveryChallan(
+  id: string,
+  companyId: string,
+  userId?: string
+): Promise<DeliveryChallan> {
+  const source = await getDeliveryChallanById(id);
+  if (!source) throw new Error('Delivery challan not found');
+
+  const challanNumber = await generateDeliveryChallanNumber(companyId);
+
+  return addDeliveryChallan(
+    {
+      company_id: companyId,
+      customer_id: source.customer_id,
+      challan_number: challanNumber,
+      date: new Date().toISOString().split('T')[0],
+      quality: source.quality,
+      broker: source.broker,
+      delivered_by: source.delivered_by,
+      remarks: source.remarks,
+      notes: source.notes,
+      status: 'Draft',
+      items: (source.items ?? []).map((item) => ({
+        taka_no: item.taka_no,
+        meters: item.meters,
+        weight: item.weight,
+      })),
+    },
+    userId
+  );
+}

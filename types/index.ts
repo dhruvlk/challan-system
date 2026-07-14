@@ -180,3 +180,47 @@ export interface PaginatedResult<T> {
   pageSize: number;
   totalPages: number;
 }
+
+export type DeliveryChallanStatus = 'Draft' | 'Pending' | 'Delivered' | 'Returned' | 'Cancelled';
+
+export interface DeliveryChallanItem {
+  id: string;
+  delivery_challan_id: string;
+  sort_order: number;
+  taka_no?: string | null;
+  meters: number;
+  weight: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DeliveryChallan {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  challan_number: string;
+  date: string;
+  quality?: string | null;
+  broker?: string | null;
+  delivered_by?: string | null;
+  remarks?: string | null;
+  notes?: string | null;
+  status: DeliveryChallanStatus;
+  total_pieces: number;
+  total_meters: number;
+  total_weight: number;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  customer?: Customer;
+  items?: DeliveryChallanItem[];
+}
+
+export interface DeliveryChallanFilters {
+  search?: string;
+  status?: DeliveryChallanStatus | '';
+  customerId?: string;
+  broker?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}

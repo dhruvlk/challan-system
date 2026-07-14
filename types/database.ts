@@ -168,6 +168,43 @@ export type ChallanSequenceRow = {
   updated_at: string;
 };
 
+export type DeliveryChallanRow = {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  challan_number: string;
+  date: string;
+  quality: string | null;
+  broker: string | null;
+  delivered_by: string | null;
+  remarks: string | null;
+  notes: string | null;
+  status: string;
+  total_pieces: number;
+  total_meters: number;
+  total_weight: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DeliveryChallanItemRow = {
+  id: string;
+  delivery_challan_id: string;
+  sort_order: number;
+  taka_no: string | null;
+  meters: number;
+  weight: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DeliveryChallanSequenceRow = {
+  company_id: string;
+  last_number: number;
+  updated_at: string;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -236,6 +273,32 @@ export interface Database {
         Update: Partial<ChallanPaymentRow>;
         Relationships: [];
       };
+      delivery_challans: {
+        Row: DeliveryChallanRow;
+        Insert: Omit<DeliveryChallanRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<DeliveryChallanRow>;
+        Relationships: [];
+      };
+      delivery_challan_items: {
+        Row: DeliveryChallanItemRow;
+        Insert: Omit<DeliveryChallanItemRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<DeliveryChallanItemRow>;
+        Relationships: [];
+      };
+      delivery_challan_sequences: {
+        Row: DeliveryChallanSequenceRow;
+        Insert: DeliveryChallanSequenceRow;
+        Update: Partial<DeliveryChallanSequenceRow>;
+        Relationships: [];
+      };
       profiles: {
         Row: ProfileRow;
         Insert: Omit<ProfileRow, 'created_at' | 'updated_at'> & {
@@ -259,6 +322,10 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       generate_challan_number: {
+        Args: { p_company_id: string };
+        Returns: string;
+      };
+      generate_delivery_challan_number: {
         Args: { p_company_id: string };
         Returns: string;
       };
