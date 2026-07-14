@@ -4,6 +4,7 @@ import { Download, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Challan, Company } from "@/types"
 import { ChallanPDF } from "@/components/pdf/ChallanPDF"
+import { buildPdfFilename } from "@/lib/pdf-utils"
 
 interface DownloadButtonProps {
   challan: Challan
@@ -37,12 +38,11 @@ export function DownloadChallanButton({ challan, company, variant = "ghost", siz
       const link = document.createElement("a")
       link.href = url
       
-      // Determine filename
-      const filename = challan.challan_number 
-        ? `Challan-${challan.challan_number}.pdf` 
-        : "Challan.pdf"
-      
-      link.download = filename
+      link.download = buildPdfFilename(
+        "Invoice",
+        challan.challan_number,
+        challan.customer?.name ?? challan.party?.name
+      )
       document.body.appendChild(link)
       link.click()
       

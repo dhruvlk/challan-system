@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import type { Company, DeliveryChallan } from "@/types"
 import { DeliveryChallanPDF } from "@/components/pdf/DeliveryChallanPDF"
 import { getDeliveryChallanById } from "@/services/delivery-challans.service"
+import { buildPdfFilename } from "@/lib/pdf-utils"
 
 interface DownloadButtonProps {
   challan: DeliveryChallan
@@ -51,9 +52,11 @@ export function DownloadDeliveryChallanButton({
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
-      link.download = latest.challan_number
-        ? `Delivery-Challan-${latest.challan_number}.pdf`
-        : "Delivery-Challan.pdf"
+      link.download = buildPdfFilename(
+        "Delivery-Challan",
+        latest.challan_number,
+        latest.customer?.name
+      )
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)

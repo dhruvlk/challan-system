@@ -5,6 +5,34 @@ export function formatCompanyAddress(company: Company): string {
   return parts.join(', ');
 }
 
+/** Sanitize a name for use in download filenames. */
+export function slugifyCompanyName(name?: string | null): string {
+  if (!name?.trim()) return '';
+  return name
+    .trim()
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+/**
+ * Build a PDF download filename like:
+ * Delivery-Challan-DC-000002-Customer-Name.pdf
+ * Invoice-CH-000041-Customer-Name.pdf
+ */
+export function buildPdfFilename(
+  prefix: string,
+  documentNumber?: string | null,
+  partyName?: string | null
+): string {
+  const partySlug = slugifyCompanyName(partyName);
+  const parts = [prefix];
+  if (documentNumber?.trim()) parts.push(documentNumber.trim());
+  if (partySlug) parts.push(partySlug);
+  return `${parts.join('-')}.pdf`;
+}
+
 export interface BankDetailRow {
   label?: string;
   value: string;
