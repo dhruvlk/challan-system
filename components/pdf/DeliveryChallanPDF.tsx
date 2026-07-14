@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
 import type { Company, Customer, DeliveryChallan } from '@/types';
-import { formatCompanyAddress, parseTerms } from '@/lib/pdf-utils';
+import { formatCompanyAddress } from '@/lib/pdf-utils';
 
 Font.register({
   family: 'Gujarati',
@@ -79,10 +79,11 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   companyName: {
-    fontFamily: 'Times-Bold',
-    fontSize: 32,
-    color: BLACK,
-    letterSpacing: 0.5,
+    fontSize: 35,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    color: '#4A4036',
+    fontFamily: 'Times-Roman',
   },
   tagline: {
     fontFamily: 'Helvetica',
@@ -266,7 +267,7 @@ const styles = StyleSheet.create({
   termText: {
     flex: 1,
     fontFamily: 'Helvetica',
-    fontSize: 9.5,
+    fontSize: 9,
     lineHeight: 1.3,
     color: BLACK,
   },
@@ -457,9 +458,7 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
     .filter(Boolean)
     .join(', ');
   const [addrLine1, addrLine2] = splitAddressLines(customerAddress);
-
-  const parsedTerms = parseTerms(company.terms_conditions);
-  const displayTerms = (parsedTerms.length > 0 ? parsedTerms : DEFAULT_TERMS).slice(0, 4);
+  const displayTerms = DEFAULT_TERMS;
 
   const pages = chunkItems(items, PAGE_CAPACITY);
 
@@ -498,7 +497,7 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                 </View>
 
                 <View style={styles.companyWrap}>
-                  <Text style={styles.companyName}>{company.name || ''}</Text>
+                  <Text style={styles.companyName}>{(company.name || '').toUpperCase()}</Text>
                   <Text style={styles.tagline}>{company.tagline || ''}</Text>
                   <Text style={styles.gstin}>
                     {company.gst_number ? `GSTIN: ${company.gst_number}` : ''}
