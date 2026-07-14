@@ -436,7 +436,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
                 <View style={[styles.bottomLabelRow, { marginBottom: 15 }]}>
                   <Text style={styles.bottomLabel}>Delivered By:</Text>
                   <Text style={[styles.cellText, { fontFamily: 'Helvetica-Bold' }]}>
-                    {challan.driver_name || '-'}
+                    {challan.delivered_by || challan.driver_name || '-'}
                   </Text>
                 </View>
                 <View style={[styles.bottomLabelRow, { marginBottom: 6 }]}>

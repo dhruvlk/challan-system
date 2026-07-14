@@ -94,7 +94,7 @@ export type ChallanRow = {
   date: string;
   bill_number: string | null;
   vehicle_number: string | null;
-  driver_name: string | null;
+  delivered_by: string | null;
   driver_mobile: string | null;
   delivery_location: string | null;
   broker: string | null;

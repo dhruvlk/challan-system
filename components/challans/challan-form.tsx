@@ -45,10 +45,7 @@ const challanSchema = z.object({
   bill_number: z.string().optional(),
   date: z.string().min(1, "Date is required"),
   party_id: z.string().min(1, "Party is required"),
-  vehicle_number: z.string().optional(),
-  driver_name: z.string().optional(),
-  driver_mobile: z.string().optional(),
-  delivery_location: z.string().optional(),
+  delivered_by: z.string().optional(),
   broker: z.string().optional(),
   payment_within_value: z.coerce.number().min(1, "Must be greater than 0"),
   payment_within_unit: z.string().min(1, "Unit is required"),
@@ -75,10 +72,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
       bill_number: initialData.bill_number || "",
       date: initialData.date,
       party_id: initialData.customer_id ?? initialData.party_id ?? "",
-      vehicle_number: initialData.vehicle_number || "",
-      driver_name: initialData.driver_name || "",
-      driver_mobile: initialData.driver_mobile || "",
-      delivery_location: initialData.delivery_location || "",
+      delivered_by: initialData.delivered_by || initialData.driver_name || "",
       broker: initialData.broker || "",
       payment_within_value: initialData.payment_within_value || 45,
       payment_within_unit: initialData.payment_within_unit || "Days",
@@ -104,6 +98,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
       challan_number: "",
       bill_number: "",
       date: new Date().toISOString().split('T')[0],
+      delivered_by: "",
       broker: "",
       payment_within_value: 45,
       payment_within_unit: "Days",
@@ -198,10 +193,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         challan_number: values.challan_number,
         bill_number: values.bill_number || null,
         date: values.date,
-        vehicle_number: values.vehicle_number || null,
-        driver_name: values.driver_name || null,
-        driver_mobile: values.driver_mobile || null,
-        delivery_location: values.delivery_location || null,
+        delivered_by: values.delivered_by || null,
         broker: values.broker || null,
         payment_within_value: values.payment_within_value,
         payment_within_unit: values.payment_within_unit,
@@ -319,36 +311,14 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Transport Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Vehicle Number</Label>
-                <Input {...form.register("vehicle_number")} placeholder="GJ 05 XX 1234" />
-              </div>
-              <div className="space-y-2">
-                <Label>Driver Name</Label>
-                <Input {...form.register("driver_name")} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Driver Mobile</Label>
-              <Input {...form.register("driver_mobile")} />
-            </div>
-            <div className="space-y-2">
-              <Label>Delivery Location</Label>
-              <Input {...form.register("delivery_location")} />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="md:col-span-2">
-          <CardHeader>
             <CardTitle>Challan Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Delivered By</Label>
+                <Input {...form.register("delivered_by")} placeholder="e.g. Rajesh Patel" />
+              </div>
               <div className="space-y-2">
                 <Label>Broker</Label>
                 <Input {...form.register("broker")} placeholder="Enter Broker Name (Optional)" />
@@ -356,6 +326,8 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
                   <p className="text-xs text-red-500">{form.formState.errors.broker.message}</p>
                 )}
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Payment Within *</Label>
                 <div className="flex gap-2">
@@ -375,8 +347,6 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
                   <p className="text-xs text-red-500">Payment terms are required</p>
                 )}
               </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Due Date *</Label>
                 <Input type="date" {...form.register("due_date")} onChange={(e) => {
@@ -387,10 +357,10 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
                   <p className="text-xs text-red-500">{form.formState.errors.due_date.message}</p>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Rupees (Read Only)</Label>
-                <Input {...form.register("amount_in_words")} readOnly className="bg-muted" />
-              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Rupees (Read Only)</Label>
+              <Input {...form.register("amount_in_words")} readOnly className="bg-muted" />
             </div>
           </CardContent>
         </Card>

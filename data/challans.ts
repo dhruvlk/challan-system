@@ -5,7 +5,6 @@ const statuses: ChallanStatus[] = ['Draft', 'Pending', 'Delivered', 'Returned', 
 const fabrics = ["Cotton", "Polyester", "Silk", "Rayon", "Chiffon", "Georgette", "Crepe"];
 const qualities = ["60x60 Cambric", "Semi-Stitched", "Printed", "Dyed", "Embroidered"];
 const colors = ["Red", "Blue", "Green", "Yellow", "Black", "White", "Pink"];
-const vehicles = ["GJ 05 XX 1111", "GJ 05 YY 2222", "MH 04 ZZ 3333", "DL 01 AB 1234"];
 const drivers = ["Ramesh", "Suresh", "Mahesh", "Kamlesh"];
 const brokers = ["Mahesh Broker", "Raj Trading", "Shree Agency", "Patel Brokers", "Om Enterprise"];
 
@@ -51,10 +50,7 @@ const generateChallans = (companyId: string, prefix: string): Challan[] => {
       date: date.toISOString().split('T')[0],
       party_id: party.id,
       customer_id: party.id,
-      vehicle_number: vehicles[Math.floor(Math.random() * vehicles.length)],
-      driver_name: drivers[Math.floor(Math.random() * drivers.length)],
-      driver_mobile: `98765${Math.floor(10000 + Math.random() * 90000)}`,
-      delivery_location: party.address,
+      delivered_by: drivers[Math.floor(Math.random() * drivers.length)],
       broker: brokers[Math.floor(Math.random() * brokers.length)],
       payment_within_value: 45,
       payment_within_unit: "Days",

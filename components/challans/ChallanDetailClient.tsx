@@ -384,8 +384,8 @@ export default function ChallanDetailClient({ id }: { id: string }) {
                   value={`${challan.items?.length ?? 0} line item(s)`}
                 />
                 <DetailRow
-                  label="Vehicle"
-                  value={challan.vehicle_number ?? "—"}
+                  label="Delivered By"
+                  value={challan.delivered_by ?? challan.driver_name ?? "—"}
                 />
               </div>
             </CardContent>

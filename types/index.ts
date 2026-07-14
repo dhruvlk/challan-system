@@ -98,6 +98,8 @@ export interface Challan {
   date: string;
   bill_number?: string | null;
   vehicle_number?: string | null;
+  delivered_by?: string | null;
+  /** @deprecated use delivered_by */
   driver_name?: string | null;
   driver_mobile?: string | null;
   delivery_location?: string | null;
