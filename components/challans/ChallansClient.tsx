@@ -29,6 +29,7 @@ import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { format } from "date-fns"
 
@@ -70,7 +71,7 @@ export default function ChallansClient() {
       setChallans(data)
       setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
     } catch {
-      toast.error("Failed to load challans")
+      toast.error("Failed to load invoices")
     } finally {
       setIsLoading(false)
     }
@@ -87,7 +88,7 @@ export default function ChallansClient() {
       toast.success("Challan deleted successfully.")
       await loadChallans()
     } catch {
-      toast.error("Failed to delete challan")
+      toast.error("Failed to delete invoice")
     }
     setDeleteDialogOpen(false)
     setChallanToDelete(null)
@@ -100,7 +101,7 @@ export default function ChallansClient() {
       toast.success("Challan duplicated successfully.")
       await loadChallans()
     } catch {
-      toast.error("Failed to duplicate challan")
+      toast.error("Failed to duplicate invoice")
     }
   }
 
@@ -120,13 +121,13 @@ export default function ChallansClient() {
       <EmptyState
         icon={Building2}
         title="Select a company"
-        description="Choose a company from the header to view and manage challans."
+        description="Choose a company from the header to view and manage invoices."
       />
     )
   }
 
   const columns = [
-    { header: "Challan No.", accessorKey: "challan_number" as keyof Challan, className: "font-medium" },
+    { header: "Invoice No.", accessorKey: "challan_number" as keyof Challan, className: "font-medium" },
     { header: "Date", cell: (c: Challan) => format(new Date(c.date), "dd/MM/yyyy") },
     { header: "Customer", cell: (c: Challan) => c.customer?.name || c.party?.name || "-" },
     { header: "Broker", cell: (c: Challan) => c.broker || "-" },
@@ -200,52 +201,135 @@ export default function ChallansClient() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Operations"
-        title="Challans"
-        description={`Manage delivery challans for ${selectedCompany.name}`}
+        title="Invoice"
+        description={`Manage invoices for ${selectedCompany.name}`}
         action={
           <Button onClick={() => router.push("/challans/new")}>
             <PlusCircle className="mr-2 h-4 w-4" />
-            New Challan
+            New Invoice
           </Button>
         }
       />
 
       <Card>
         <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-          <Input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="xl:col-span-2" />
-          <Select value={statusFilter || "all"} onValueChange={(v) => setStatusFilter(!v || v === "all" ? "" : v as ChallanStatus)}>
-            <SelectTrigger><SelectValue placeholder="Delivery status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All delivery status</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Delivered">Delivered</SelectItem>
-              <SelectItem value="Returned">Returned</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={paymentStatusFilter || "all"} onValueChange={(v) => setPaymentStatusFilter(!v || v === "all" ? "" : v as ChallanPaymentStatus)}>
-            <SelectTrigger><SelectValue placeholder="Payment status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All payment status</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Partially Paid">Partially Paid</SelectItem>
-              <SelectItem value="Paid">Paid</SelectItem>
-              <SelectItem value="Overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={customerFilter || "all"} onValueChange={(v) => setCustomerFilter(!v || v === "all" ? "" : v)}>
-            <SelectTrigger><SelectValue placeholder="Customer" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All customers</SelectItem>
-              {customers.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          <Input placeholder="Broker" value={brokerFilter} onChange={(e) => setBrokerFilter(e.target.value)} className="xl:col-span-2" />
+          <div className="space-y-1.5 xl:col-span-2">
+            <Label htmlFor="challan-filter-search" className="text-xs font-medium text-muted-foreground">
+              Search Invoice No.
+            </Label>
+            <Input
+              id="challan-filter-search"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Delivery Status</Label>
+            <Select
+              value={statusFilter || "all"}
+              onValueChange={(v) => setStatusFilter(!v || v === "all" ? "" : (v as ChallanStatus))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Delivery status">
+                  {(value: string | null) => {
+                    if (!value || value === "all") return "All"
+                    return value
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Draft">Draft</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Delivered">Delivered</SelectItem>
+                <SelectItem value="Returned">Returned</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Payment Status</Label>
+            <Select
+              value={paymentStatusFilter || "all"}
+              onValueChange={(v) =>
+                setPaymentStatusFilter(!v || v === "all" ? "" : (v as ChallanPaymentStatus))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Payment status">
+                  {(value: string | null) => {
+                    if (!value || value === "all") return "All"
+                    return value
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
+                <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                <SelectItem value="Paid">Paid</SelectItem>
+                <SelectItem value="Overdue">Overdue</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Customer</Label>
+            <Select
+              value={customerFilter || "all"}
+              onValueChange={(v) => setCustomerFilter(!v || v === "all" ? "" : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Customer">
+                  {(value: string | null) => {
+                    if (!value || value === "all") return "All"
+                    return customers.find((c) => c.id === value)?.name ?? "Customer"
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {customers.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="challan-filter-date-from" className="text-xs font-medium text-muted-foreground">
+              From Date
+            </Label>
+            <Input
+              id="challan-filter-date-from"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="challan-filter-date-to" className="text-xs font-medium text-muted-foreground">
+              To Date
+            </Label>
+            <Input
+              id="challan-filter-date-to"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5 xl:col-span-2">
+            <Label htmlFor="challan-filter-broker" className="text-xs font-medium text-muted-foreground">
+              Broker
+            </Label>
+            <Input
+              id="challan-filter-broker"
+              placeholder="Broker"
+              value={brokerFilter}
+              onChange={(e) => setBrokerFilter(e.target.value)}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -261,8 +345,8 @@ export default function ChallansClient() {
       <ConfirmationDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Delete Challan"
-        description={`Are you sure you want to delete challan ${challanToDelete?.challan_number}?`}
+        title="Delete Invoice"
+        description={`Are you sure you want to delete invoice ${challanToDelete?.challan_number}?`}
         confirmText="Delete"
         onConfirm={confirmDelete}
         variant="destructive"

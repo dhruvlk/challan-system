@@ -2,7 +2,7 @@ import ChallanPrintClient from "@/components/challans/ChallanPrintClient"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Print Challan | Textile Challan Management",
+  title: "Print Invoice | Textile Challan Management",
   description: "Print delivery challan",
 }
 

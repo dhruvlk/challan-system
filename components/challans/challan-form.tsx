@@ -41,7 +41,7 @@ const itemSchema = z.object({
 })
 
 const challanSchema = z.object({
-  challan_number: z.string().min(1, "Challan number is required"),
+  challan_number: z.string().min(1, "Invoice number is required"),
   bill_number: z.string().optional(),
   date: z.string().min(1, "Date is required"),
   party_id: z.string().min(1, "Party is required"),
@@ -210,16 +210,16 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
 
       if (initialData) {
         await updateChallan({ ...challanPayload, id: initialData.id, items: challanPayload.items })
-        toast.success("Challan updated successfully!")
+        toast.success("Invoice updated successfully!")
       } else {
         await addChallan(challanPayload, user?.id)
-        toast.success("Challan created successfully!")
+        toast.success("Invoice created successfully!")
       }
       
       router.push("/challans")
       router.refresh()
     } catch (error) {
-      toast.error("An error occurred while saving the challan.")
+      toast.error("An error occurred while saving the invoice.")
     } finally {
       setIsSubmitting(false)
     }
@@ -230,12 +230,12 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
       <PageHeader
-        eyebrow="Challans"
-        title={isEditMode ? "Edit challan" : "Create challan"}
+        eyebrow="Invoice"
+        title={isEditMode ? "Edit invoice" : "Create invoice"}
         description={
           isEditMode
-            ? "Update the details of this delivery challan."
-            : `Create a new delivery challan for ${selectedCompany.name}`
+            ? "Update the details of this invoice."
+            : `Create a new invoice for ${selectedCompany.name}`
         }
         action={
           <div className="flex flex-wrap gap-2">
@@ -244,7 +244,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? "Update challan" : "Create challan"}
+              {isEditMode ? "Update invoice" : "Create invoice"}
             </Button>
           </div>
         }
@@ -258,7 +258,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Challan Number *</Label>
+                <Label>Invoice Number *</Label>
                 <Input {...form.register("challan_number")} readOnly={isEditMode} className={isEditMode ? "bg-muted" : ""} />
                 {form.formState.errors.challan_number && (
                   <p className="text-xs text-red-500">{form.formState.errors.challan_number.message}</p>
@@ -311,7 +311,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Challan Details</CardTitle>
+            <CardTitle>Invoice Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -370,7 +370,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Items</CardTitle>
-            <CardDescription>Add items to this challan</CardDescription>
+            <CardDescription>Add items to this invoice</CardDescription>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => append({ quality: '', total_pieces: 1, quantity_display: '', weight: 0, rate: 0, amount: 0 })}>
             <Plus className="mr-2 h-4 w-4" />

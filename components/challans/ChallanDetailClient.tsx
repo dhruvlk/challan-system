@@ -185,12 +185,12 @@ export default function ChallanDetailClient({ id }: { id: string }) {
     return (
       <EmptyState
         icon={FileText}
-        title="Challan not found"
-        description="This challan may have been deleted or you don't have access."
+        title="Invoice not found"
+        description="This invoice may have been deleted or you don't have access."
         action={
           <Button variant="outline" onClick={() => router.push("/challans")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Challans
+            Back to Invoice
           </Button>
         }
       />
@@ -211,7 +211,7 @@ export default function ChallanDetailClient({ id }: { id: string }) {
   return (
     <PageTransition className="space-y-6">
       <PageHeader
-        eyebrow="Challan Details"
+        eyebrow="Invoice Details"
         title={challan.challan_number}
         description={`${challan.customer?.name ?? "Customer"} · ${format(new Date(challan.date), "dd MMM yyyy")}`}
         action={
@@ -316,7 +316,7 @@ export default function ChallanDetailClient({ id }: { id: string }) {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <FileText className="h-5 w-5 text-primary" />
-                Challan Items
+                Invoice Items
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -367,7 +367,7 @@ export default function ChallanDetailClient({ id }: { id: string }) {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Calendar className="h-5 w-5 text-primary" />
-                Challan Summary
+                Invoice Summary
               </CardTitle>
             </CardHeader>
             <CardContent>

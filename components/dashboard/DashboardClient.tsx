@@ -90,7 +90,7 @@ export default function DashboardClient() {
         </div>
         <Button onClick={() => router.push("/challans/new")}>
           <FileText className="mr-2 h-4 w-4" />
-          New challan
+          New invoice
         </Button>
       </div>
 
@@ -105,7 +105,7 @@ export default function DashboardClient() {
         </MotionStaggerItem>
         <MotionStaggerItem>
           <StatCard
-            title="Total challans"
+            title="Total invoices"
             value={stats?.totalChallans ?? 0}
             icon={FileText}
             iconClassName="bg-sky-500/10 ring-sky-500/15 [&_svg]:text-sky-600"
@@ -114,7 +114,7 @@ export default function DashboardClient() {
         </MotionStaggerItem>
         <MotionStaggerItem>
           <StatCard
-            title="Today's challans"
+            title="Today's invoices"
             value={stats?.todayChallans ?? 0}
             icon={CalendarDays}
             iconClassName="bg-amber-500/10 ring-amber-500/15 [&_svg]:text-amber-600"
@@ -136,7 +136,7 @@ export default function DashboardClient() {
         <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Recent challans</CardTitle>
+              <CardTitle>Recent invoices</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">Latest activity</p>
             </div>
             <Button variant="ghost" size="sm" onClick={() => router.push("/challans")}>
@@ -177,7 +177,7 @@ export default function DashboardClient() {
               ))
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                No challans yet. Create your first challan to see activity here.
+                No invoices yet. Create your first invoice to see activity here.
               </p>
             )}
           </CardContent>
@@ -186,7 +186,7 @@ export default function DashboardClient() {
         <Card>
           <CardHeader>
             <CardTitle>Sales trend</CardTitle>
-            <p className="text-sm text-muted-foreground">From recent challans</p>
+            <p className="text-sm text-muted-foreground">From recent invoices</p>
           </CardHeader>
           <CardContent>
             <div className="mb-2 text-2xl font-semibold tabular-nums">

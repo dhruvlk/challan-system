@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   deleteDeliveryChallan,
@@ -231,45 +232,87 @@ export default function DeliveryChallansClient() {
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <Input
-              placeholder="Search number, customer, quality..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Select
-              value={statusFilter || "__all"}
-              onValueChange={(val) =>
-                setStatusFilter(val === "__all" || !val ? "" : (val as DeliveryChallanStatus))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all">All statuses</SelectItem>
-                <SelectItem value="Draft">Draft</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Delivered">Delivered</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={customerFilter || "__all"}
-              onValueChange={(val) => setCustomerFilter(val === "__all" || !val ? "" : val)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Customer" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all">All customers</SelectItem>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <div className="space-y-1.5">
+              <Label htmlFor="dc-filter-search" className="text-xs font-medium text-muted-foreground">
+                Search
+              </Label>
+              <Input
+                id="dc-filter-search"
+                placeholder="Challan no., customer, quality..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+              <Select
+                value={statusFilter || "__all"}
+                onValueChange={(val) =>
+                  setStatusFilter(val === "__all" || !val ? "" : (val as DeliveryChallanStatus))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status">
+                    {(value: string | null) => {
+                      if (!value || value === "__all") return "All"
+                      return value
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Customer</Label>
+              <Select
+                value={customerFilter || "__all"}
+                onValueChange={(val) => setCustomerFilter(val === "__all" || !val ? "" : val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Customer">
+                    {(value: string | null) => {
+                      if (!value || value === "__all") return "All"
+                      return customers.find((c) => c.id === value)?.name ?? "Customer"
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">All</SelectItem>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dc-filter-date-from" className="text-xs font-medium text-muted-foreground">
+                From Date
+              </Label>
+              <Input
+                id="dc-filter-date-from"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dc-filter-date-to" className="text-xs font-medium text-muted-foreground">
+                To Date
+              </Label>
+              <Input
+                id="dc-filter-date-to"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
           </div>
 
           <DataTable columns={columns} data={challans} isLoading={isLoading} hideSearch />
