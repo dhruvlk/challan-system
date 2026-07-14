@@ -212,13 +212,17 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
             <div className="space-y-2">
               <Label>Customer *</Label>
               <Select
+                value={customerId || undefined}
                 onValueChange={(val: string | null) => {
-                  if (val) form.setValue("customer_id", val)
+                  if (val) form.setValue("customer_id", val, { shouldValidate: true })
                 }}
-                defaultValue={form.getValues("customer_id") || undefined}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a customer" />
+                  <SelectValue placeholder="Select a customer">
+                    {(value: string | null) =>
+                      customers.find((c) => c.id === value)?.name ?? "Select a customer"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((customer) => (

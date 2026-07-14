@@ -273,13 +273,24 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Customer *</Label>
-                <Select onValueChange={(val: string | null) => { if (val) form.setValue("party_id", val) }} defaultValue={form.getValues("party_id")}>
+                <Select
+                  value={form.watch("party_id") || undefined}
+                  onValueChange={(val: string | null) => {
+                    if (val) form.setValue("party_id", val, { shouldValidate: true })
+                  }}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
+                    <SelectValue placeholder="Select a customer">
+                      {(value: string | null) =>
+                        parties.find((p) => p.id === value)?.name ?? "Select a customer"
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {parties.map(party => (
-                      <SelectItem key={party.id} value={party.id}>{party.name}</SelectItem>
+                    {parties.map((party) => (
+                      <SelectItem key={party.id} value={party.id}>
+                        {party.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
