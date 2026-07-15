@@ -377,18 +377,29 @@ function formatCellNumber(value: number | undefined | null, hasItem: boolean): s
   return Number(value || 0).toFixed(2);
 }
 
+function sumTableTotals(rows: Array<PdfItem | null>) {
+  return rows.reduce(
+    (acc, item) => {
+      if (!item) return acc;
+      return {
+        meters: acc.meters + (Number(item.meters) || 0),
+        weight: acc.weight + (Number(item.weight) || 0),
+      };
+    },
+    { meters: 0, weight: 0 }
+  );
+}
+
 function ItemTable({
   rows,
   startIndex,
   totalMeters,
   totalWeight,
-  showTotals,
 }: {
   rows: Array<PdfItem | null>;
   startIndex: number;
   totalMeters: number;
   totalWeight: number;
-  showTotals: boolean;
 }) {
   return (
     <View style={styles.table}>
@@ -416,12 +427,8 @@ function ItemTable({
 
       <View style={styles.tr} wrap={false}>
         <Text style={styles.totalLeftCell}>Total</Text>
-        <Text style={styles.totalCell}>
-          {showTotals ? totalMeters.toFixed(2) : ' '}
-        </Text>
-        <Text style={styles.totalCell}>
-          {showTotals ? totalWeight.toFixed(2) : ' '}
-        </Text>
+        <Text style={styles.totalCell}>{totalMeters.toFixed(2)}</Text>
+        <Text style={styles.totalCell}>{totalWeight.toFixed(2)}</Text>
       </View>
     </View>
   );
@@ -473,6 +480,8 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
           { length: ROWS_PER_SIDE },
           (_, i) => pageItems[i + ROWS_PER_SIDE] ?? null
         );
+        const leftTotals = sumTableTotals(leftItems);
+        const rightTotals = sumTableTotals(rightItems);
         const pageOffset = pageIndex * PAGE_CAPACITY;
 
         return (
@@ -574,16 +583,14 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                 <ItemTable
                   rows={leftItems}
                   startIndex={pageOffset + 1}
-                  showTotals
-                  totalMeters={totalMeters}
-                  totalWeight={totalWeight}
+                  totalMeters={leftTotals.meters}
+                  totalWeight={leftTotals.weight}
                 />
                 <ItemTable
                   rows={rightItems}
                   startIndex={pageOffset + ROWS_PER_SIDE + 1}
-                  showTotals={false}
-                  totalMeters={0}
-                  totalWeight={0}
+                  totalMeters={rightTotals.meters}
+                  totalWeight={rightTotals.weight}
                 />
               </View>
 
