@@ -201,6 +201,7 @@ export interface DeliveryChallan {
   challan_number: string;
   date: string;
   quality?: string | null;
+  stock_id?: string | null;
   broker?: string | null;
   delivered_by?: string | null;
   remarks?: string | null;
@@ -213,6 +214,7 @@ export interface DeliveryChallan {
   created_at?: string;
   updated_at?: string;
   customer?: Customer;
+  stock?: Stock;
   items?: DeliveryChallanItem[];
 }
 
@@ -224,3 +226,67 @@ export interface DeliveryChallanFilters {
   dateFrom?: string;
   dateTo?: string;
 }
+
+export type StockStatus = 'Available' | 'Low Stock' | 'Out Of Stock';
+
+/** Fixed Low Stock threshold — Available Taka greater than this is Available. */
+export const STOCK_LOW_THRESHOLD = 10;
+
+export type StockTransactionType =
+  | 'Opening Stock'
+  | 'Delivery Challan'
+  | 'Delivery Challan Edit'
+  | 'Delivery Challan Delete'
+  | 'Manual Stock Adjustment';
+
+export interface Stock {
+  id: string;
+  company_id: string;
+  quality_name: string;
+  total_taka: number;
+  sold_taka: number;
+  available_taka: number;
+  hsn_code?: string | null;
+  remarks?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StockMovement {
+  id: string;
+  stock_id: string;
+  company_id: string;
+  transaction_type: StockTransactionType;
+  challan_id?: string | null;
+  delivery_challan_id?: string | null;
+  quantity: number;
+  previous_stock: number;
+  current_stock: number;
+  notes?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+}
+
+export interface StockFilters {
+  search?: string;
+  status?: StockStatus | '';
+}
+
+export interface StockSummary {
+  totalQualities: number;
+  totalTaka: number;
+  totalSoldTaka: number;
+  totalAvailableTaka: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+}
+
+export function getStockStatus(
+  stock: Pick<Stock, 'available_taka'> | number
+): StockStatus {
+  const available = typeof stock === 'number' ? stock : stock.available_taka;
+  if (available <= 0) return 'Out Of Stock';
+  if (available <= STOCK_LOW_THRESHOLD) return 'Low Stock';
+  return 'Available';
+}
+

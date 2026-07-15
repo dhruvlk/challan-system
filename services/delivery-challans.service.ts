@@ -1,4 +1,8 @@
 import { createClient } from '@/lib/supabase/client';
+import {
+  applyDeliveryStockDeltas,
+  parseStockError,
+} from '@/services/stocks.service';
 import type {
   Customer,
   DeliveryChallan,
@@ -140,6 +144,7 @@ type DeliveryChallanInput = {
   challan_number: string;
   date: string;
   quality?: string | null;
+  stock_id?: string | null;
   broker?: string | null;
   delivered_by?: string | null;
   remarks?: string | null;
@@ -151,6 +156,14 @@ type DeliveryChallanInput = {
     weight?: number | null;
   }>;
 };
+
+function deliveryStockUsage(stockId: string | null | undefined, pieceCount: number): Map<string, number> {
+  const map = new Map<string, number>();
+  if (stockId && pieceCount > 0) {
+    map.set(stockId, pieceCount);
+  }
+  return map;
+}
 
 function computeTotals(items: DeliveryChallanInput['items']) {
   const normalized = items.map((item, index) => ({
@@ -182,6 +195,7 @@ export async function addDeliveryChallan(
       challan_number: input.challan_number,
       date: input.date,
       quality: input.quality ?? null,
+      stock_id: input.stock_id ?? null,
       broker: input.broker ?? null,
       delivered_by: input.delivered_by ?? null,
       remarks: input.remarks ?? null,
@@ -206,7 +220,25 @@ export async function addDeliveryChallan(
     const { error: itemsError } = await supabase()
       .from('delivery_challan_items')
       .insert(itemsPayload);
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      await supabase().from('delivery_challans').delete().eq('id', data.id);
+      throw itemsError;
+    }
+  }
+
+  try {
+    await applyDeliveryStockDeltas({
+      companyId: input.company_id,
+      previous: new Map(),
+      next: deliveryStockUsage(input.stock_id, totals.total_pieces),
+      deliveryChallanId: data.id,
+      userId,
+      isCreate: true,
+    });
+  } catch (stockError) {
+    await supabase().from('delivery_challan_items').delete().eq('delivery_challan_id', data.id);
+    await supabase().from('delivery_challans').delete().eq('id', data.id);
+    throw new Error(parseStockError(stockError));
   }
 
   const created = await getDeliveryChallanById(data.id);
@@ -218,7 +250,12 @@ export async function updateDeliveryChallan(
   id: string,
   input: DeliveryChallanInput
 ): Promise<DeliveryChallan> {
+  const existing = await getDeliveryChallanById(id);
+  if (!existing) throw new Error('Delivery challan not found');
+
   const totals = computeTotals(input.items);
+  const previousUsage = deliveryStockUsage(existing.stock_id, existing.total_pieces);
+  const nextUsage = deliveryStockUsage(input.stock_id, totals.total_pieces);
 
   const { error } = await supabase()
     .from('delivery_challans')
@@ -227,6 +264,7 @@ export async function updateDeliveryChallan(
       challan_number: input.challan_number,
       date: input.date,
       quality: input.quality ?? null,
+      stock_id: input.stock_id ?? null,
       broker: input.broker ?? null,
       delivered_by: input.delivered_by ?? null,
       remarks: input.remarks ?? null,
@@ -254,12 +292,40 @@ export async function updateDeliveryChallan(
     if (itemsError) throw itemsError;
   }
 
+  try {
+    await applyDeliveryStockDeltas({
+      companyId: input.company_id,
+      previous: previousUsage,
+      next: nextUsage,
+      deliveryChallanId: id,
+      userId: existing.created_by,
+    });
+  } catch (stockError) {
+    throw new Error(parseStockError(stockError));
+  }
+
   const updated = await getDeliveryChallanById(id);
   if (!updated) throw new Error('Failed to load updated delivery challan');
   return updated;
 }
 
 export async function deleteDeliveryChallan(id: string): Promise<void> {
+  const existing = await getDeliveryChallanById(id);
+  if (!existing) throw new Error('Delivery challan not found');
+
+  try {
+    await applyDeliveryStockDeltas({
+      companyId: existing.company_id,
+      previous: deliveryStockUsage(existing.stock_id, existing.total_pieces),
+      next: new Map(),
+      deliveryChallanId: id,
+      userId: existing.created_by,
+      isDelete: true,
+    });
+  } catch (stockError) {
+    throw new Error(parseStockError(stockError));
+  }
+
   const { error } = await supabase().from('delivery_challans').delete().eq('id', id);
   if (error) throw error;
 }
@@ -281,6 +347,7 @@ export async function duplicateDeliveryChallan(
       challan_number: challanNumber,
       date: new Date().toISOString().split('T')[0],
       quality: source.quality,
+      stock_id: source.stock_id,
       broker: source.broker,
       delivered_by: source.delivered_by,
       remarks: source.remarks,

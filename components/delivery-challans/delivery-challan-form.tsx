@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useFieldArray, useForm } from "react-hook-form"
+import { useFieldArray, useForm, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useCompany } from "@/components/company-provider"
@@ -23,7 +23,8 @@ import {
   generateDeliveryChallanNumber,
   updateDeliveryChallan,
 } from "@/services/delivery-challans.service"
-import type { Customer, DeliveryChallan, DeliveryChallanStatus } from "@/types"
+import { getStocks, parseStockError } from "@/services/stocks.service"
+import type { Customer, DeliveryChallan, DeliveryChallanStatus, Stock } from "@/types"
 
 const itemSchema = z.object({
   taka_no: z.string().optional(),
@@ -35,6 +36,7 @@ const formSchema = z.object({
   challan_number: z.string().min(1, "Challan number is required"),
   date: z.string().min(1, "Date is required"),
   customer_id: z.string().min(1, "Customer is required"),
+  stock_id: z.string().min(1, "Quality is required"),
   quality: z.string().optional(),
   broker: z.string().optional(),
   delivered_by: z.string().optional(),
@@ -51,16 +53,18 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
   const { selectedCompany } = useCompany()
   const { user } = useAuth()
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [stocks, setStocks] = useState<Stock[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isEditMode = !!initialData
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema) as any,
+    resolver: zodResolver(formSchema) as Resolver<FormValues>,
     defaultValues: initialData
       ? {
           challan_number: initialData.challan_number,
           date: initialData.date,
           customer_id: initialData.customer_id,
+          stock_id: initialData.stock_id || "",
           quality: initialData.quality || "",
           broker: initialData.broker || "",
           delivered_by: initialData.delivered_by || "",
@@ -80,6 +84,7 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
           challan_number: "",
           date: new Date().toISOString().split("T")[0],
           customer_id: "",
+          stock_id: "",
           quality: "",
           broker: "",
           delivered_by: "",
@@ -97,7 +102,14 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
 
   const items = form.watch("items")
   const customerId = form.watch("customer_id")
+  const stockId = form.watch("stock_id")
   const selectedCustomer = customers.find((c) => c.id === customerId)
+  const selectedStock = stocks.find((s) => s.id === stockId)
+  const reservedPieces =
+    isEditMode && initialData?.stock_id === stockId ? Number(initialData.total_pieces) || 0 : 0
+  const availableForSale = selectedStock
+    ? selectedStock.available_taka + reservedPieces
+    : null
 
   const totals = {
     pieces: items?.length ?? 0,
@@ -106,11 +118,16 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
   }
 
   useEffect(() => {
-    async function loadCustomers() {
+    async function loadData() {
       if (!selectedCompany) return
       setCustomers(await getCustomers(selectedCompany.id))
+      try {
+        setStocks(await getStocks(selectedCompany.id))
+      } catch {
+        toast.error("Failed to load stock qualities")
+      }
     }
-    loadCustomers()
+    loadData()
   }, [selectedCompany])
 
   useEffect(() => {
@@ -132,12 +149,32 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
     setIsSubmitting(true)
 
     try {
+      const stock = stocks.find((s) => s.id === values.stock_id)
+      if (!stock) {
+        toast.error("Selected quality was not found in stock.")
+        setIsSubmitting(false)
+        return
+      }
+
+      const pieceCount = values.items.length
+      const reserved =
+        isEditMode && initialData?.stock_id === values.stock_id
+          ? Number(initialData.total_pieces) || 0
+          : 0
+      const available = stock.available_taka + reserved
+      if (pieceCount > available) {
+        toast.error(`Only ${available} Taka Available.`)
+        setIsSubmitting(false)
+        return
+      }
+
       const payload = {
         company_id: selectedCompany.id,
         customer_id: values.customer_id,
         challan_number: values.challan_number,
         date: values.date,
-        quality: values.quality || null,
+        stock_id: values.stock_id,
+        quality: stock.quality_name,
         broker: values.broker || null,
         delivered_by: values.delivered_by || null,
         remarks: values.remarks || null,
@@ -156,8 +193,8 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
 
       router.push("/delivery-challans")
       router.refresh()
-    } catch {
-      toast.error("An error occurred while saving the delivery challan.")
+    } catch (error) {
+      toast.error(parseStockError(error) || "An error occurred while saving the delivery challan.")
     } finally {
       setIsSubmitting(false)
     }
@@ -273,8 +310,42 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Quality</Label>
-                <Input {...form.register("quality")} placeholder="e.g. Polyester Chiffon" />
+                <Label>Quality *</Label>
+                <Select
+                  value={stockId || undefined}
+                  onValueChange={(val: string | null) => {
+                    if (!val) return
+                    const stock = stocks.find((s) => s.id === val)
+                    form.setValue("stock_id", val, { shouldValidate: true })
+                    form.setValue("quality", stock?.quality_name || "")
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select quality">
+                      {selectedStock?.quality_name || "Select quality"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stocks.map((stock) => (
+                      <SelectItem key={stock.id} value={stock.id}>
+                        {stock.quality_name} ({stock.available_taka} avail.)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {availableForSale != null && (
+                  <p className="text-xs text-muted-foreground">
+                    Available: {availableForSale} Taka
+                  </p>
+                )}
+                {availableForSale != null && totals.pieces > availableForSale && (
+                  <p className="text-xs text-red-500">
+                    Only {availableForSale} Taka Available.
+                  </p>
+                )}
+                {form.formState.errors.stock_id && (
+                  <p className="text-xs text-red-500">{form.formState.errors.stock_id.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Broker</Label>

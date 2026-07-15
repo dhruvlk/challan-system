@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 6,
+    marginBottom: 9,
   },
   fieldLabel: {
     fontFamily: 'Helvetica',

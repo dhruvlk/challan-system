@@ -175,6 +175,7 @@ export type DeliveryChallanRow = {
   challan_number: string;
   date: string;
   quality: string | null;
+  stock_id: string | null;
   broker: string | null;
   delivered_by: string | null;
   remarks: string | null;
@@ -186,6 +187,37 @@ export type DeliveryChallanRow = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type StockRow = {
+  id: string;
+  company_id: string;
+  quality_name: string;
+  total_taka: number;
+  sold_taka: number;
+  available_taka: number;
+  hsn_code: string | null;
+  remarks: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StockMovementRow = {
+  id: string;
+  company_id: string;
+  stock_id: string;
+  transaction_type: string;
+  quantity: number;
+  previous_stock: number;
+  current_stock: number;
+  reference_type: string | null;
+  reference_id: string | null;
+  challan_id: string | null;
+  delivery_challan_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
 };
 
 export type DeliveryChallanItemRow = {
@@ -299,6 +331,25 @@ export interface Database {
         Update: Partial<DeliveryChallanSequenceRow>;
         Relationships: [];
       };
+      stocks: {
+        Row: StockRow;
+        Insert: Omit<StockRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<StockRow>;
+        Relationships: [];
+      };
+      stock_movements: {
+        Row: StockMovementRow;
+        Insert: Omit<StockMovementRow, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<StockMovementRow>;
+        Relationships: [];
+      };
       profiles: {
         Row: ProfileRow;
         Insert: Omit<ProfileRow, 'created_at' | 'updated_at'> & {
@@ -328,6 +379,21 @@ export interface Database {
       generate_delivery_challan_number: {
         Args: { p_company_id: string };
         Returns: string;
+      };
+      process_quality_stock_change: {
+        Args: {
+          p_company_id: string;
+          p_stock_id: string;
+          p_delta: number;
+          p_transaction_type: string;
+          p_reference_type?: string | null;
+          p_reference_id?: string | null;
+          p_challan_id?: string | null;
+          p_delivery_challan_id?: string | null;
+          p_notes?: string | null;
+          p_user_id?: string | null;
+        };
+        Returns: undefined;
       };
       register_company_account: {
         Args: {

@@ -15,6 +15,7 @@ import {
   Menu,
   PlusCircle,
   Truck,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react"
 import { FEATURES } from "@/lib/features"
@@ -31,6 +32,7 @@ const navigation: { name: string; href: string; icon: LucideIcon; feature?: keyo
   { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Customers", href: "/parties", icon: Users },
   { name: "Products", href: "/products", icon: Package, feature: "productsModule" },
+  { name: "Stock", href: "/stock", icon: Warehouse },
   { name: "Delivery Challans", href: "/delivery-challans", icon: Truck },
   { name: "Invoice", href: "/challans", icon: FileText },
   { name: "Reports", href: "/reports", icon: PieChart },
