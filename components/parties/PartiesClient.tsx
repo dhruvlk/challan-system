@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useCompany } from "@/components/company-provider"
+import { usePermissions } from "@/context/PermissionContext"
+import { PermissionGate } from "@/components/auth/PermissionGate"
 import { PartyFormDialog } from "@/components/parties/party-form-dialog"
 import { Pencil, Trash2, Users } from "lucide-react"
 import {
@@ -21,6 +23,7 @@ import { EmptyState } from "@/components/common/EmptyState"
 
 export default function PartiesClient() {
   const { selectedCompany } = useCompany()
+  const { can } = usePermissions()
   const [parties, setParties] = useState<Customer[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -100,18 +103,22 @@ export default function PartiesClient() {
       className: "text-right",
       cell: (p: Customer) => (
         <div className="flex justify-end gap-2">
-          <PartyFormDialog
-            initialData={p}
-            onPartyAdded={handlePartyAddedOrUpdated}
-            trigger={
-              <Button variant="ghost" size="icon">
-                <Pencil className="h-4 w-4" />
-              </Button>
-            }
-          />
-          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setPartyToDelete(p); setDeleteDialogOpen(true) }}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <PermissionGate module="customers" action="edit">
+            <PartyFormDialog
+              initialData={p}
+              onPartyAdded={handlePartyAddedOrUpdated}
+              trigger={
+                <Button variant="ghost" size="icon">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              }
+            />
+          </PermissionGate>
+          <PermissionGate module="customers" action="delete">
+            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setPartyToDelete(p); setDeleteDialogOpen(true) }}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
         </div>
       ),
     },
@@ -123,7 +130,11 @@ export default function PartiesClient() {
         eyebrow="Directory"
         title="Customers"
         description={`Manage customers for ${selectedCompany.name}`}
-        action={<PartyFormDialog onPartyAdded={handlePartyAddedOrUpdated} />}
+        action={
+          can("customers", "create") ? (
+            <PartyFormDialog onPartyAdded={handlePartyAddedOrUpdated} />
+          ) : undefined
+        }
       />
 
       <DataTable

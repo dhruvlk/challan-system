@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
+import { usePermissions } from "@/context/PermissionContext"
+import { PermissionGate } from "@/components/auth/PermissionGate"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { EmptyState } from "@/components/common/EmptyState"
@@ -36,6 +38,7 @@ import { format } from "date-fns"
 export default function ChallansClient() {
   const { selectedCompany } = useCompany()
   const { user } = useAuth()
+  const { can } = usePermissions()
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<ChallanStatus | "">("")
@@ -183,15 +186,21 @@ export default function ChallansClient() {
             <Printer className="h-4 w-4" />
           </Button>
           <DownloadChallanButton challan={c} company={selectedCompany} />
-          <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}/edit`)}>
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleDuplicate(c)}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setChallanToDelete(c); setDeleteDialogOpen(true) }}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <PermissionGate module="invoices" action="edit">
+            <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}/edit`)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
+          <PermissionGate module="invoices" action="create">
+            <Button variant="ghost" size="icon" onClick={() => handleDuplicate(c)}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
+          <PermissionGate module="invoices" action="delete">
+            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setChallanToDelete(c); setDeleteDialogOpen(true) }}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
         </div>
       ),
     },
@@ -204,10 +213,12 @@ export default function ChallansClient() {
         title="Invoice"
         description={`Manage invoices for ${selectedCompany.name}`}
         action={
-          <Button onClick={() => router.push("/challans/new")}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Invoice
-          </Button>
+          can("invoices", "create") ? (
+            <Button onClick={() => router.push("/challans/new")}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Invoice
+            </Button>
+          ) : undefined
         }
       />
 

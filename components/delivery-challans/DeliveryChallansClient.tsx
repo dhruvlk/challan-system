@@ -15,6 +15,8 @@ import {
 } from "lucide-react"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
+import { usePermissions } from "@/context/PermissionContext"
+import { PermissionGate } from "@/components/auth/PermissionGate"
 import { EmptyState } from "@/components/common/EmptyState"
 import { PageHeader } from "@/components/common/PageHeader"
 import { DataTable } from "@/components/tables/DataTable"
@@ -37,6 +39,7 @@ import type { DeliveryChallan, DeliveryChallanFilters, DeliveryChallanStatus } f
 export default function DeliveryChallansClient() {
   const { selectedCompany } = useCompany()
   const { user } = useAuth()
+  const { can } = usePermissions()
   const router = useRouter()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<DeliveryChallanStatus | "">("")
@@ -187,29 +190,35 @@ export default function DeliveryChallansClient() {
             <Printer className="h-4 w-4" />
           </Button>
           <DownloadDeliveryChallanButton challan={row} company={selectedCompany} />
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Edit"
-            onClick={() => router.push(`/delivery-challans/${row.id}/edit`)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" title="Duplicate" onClick={() => handleDuplicate(row)}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Delete"
-            className="text-destructive"
-            onClick={() => {
-              setToDelete(row)
-              setDeleteDialogOpen(true)
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <PermissionGate module="delivery_challans" action="edit">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Edit"
+              onClick={() => router.push(`/delivery-challans/${row.id}/edit`)}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
+          <PermissionGate module="delivery_challans" action="create">
+            <Button variant="ghost" size="icon" title="Duplicate" onClick={() => handleDuplicate(row)}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
+          <PermissionGate module="delivery_challans" action="delete">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Delete"
+              className="text-destructive"
+              onClick={() => {
+                setToDelete(row)
+                setDeleteDialogOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
         </div>
       ),
     },
@@ -222,10 +231,12 @@ export default function DeliveryChallansClient() {
         title="Delivery Challans"
         description="Create and manage textile delivery challans."
         action={
-          <Button onClick={() => router.push("/delivery-challans/new")}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Delivery Challan
-          </Button>
+          can("delivery_challans", "create") ? (
+            <Button onClick={() => router.push("/delivery-challans/new")}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Delivery Challan
+            </Button>
+          ) : undefined
         }
       />
 

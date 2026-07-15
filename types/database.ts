@@ -12,6 +12,8 @@ export type CompanyMemberRow = {
   user_id: string;
   role: string;
   is_active: boolean;
+  designation: string | null;
+  invited_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -20,9 +22,38 @@ export type ProfileRow = {
   id: string;
   full_name: string;
   mobile: string | null;
+  email: string | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type EmployeePermissionRow = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  module: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  can_export: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AuditLogRow = {
+  id: string;
+  company_id: string;
+  user_id: string | null;
+  employee_name: string | null;
+  action: string;
+  module: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  metadata: Json;
+  ip_address: string | null;
+  created_at: string;
 };
 
 export type CompanyRow = {
@@ -352,7 +383,10 @@ export interface Database {
       };
       profiles: {
         Row: ProfileRow;
-        Insert: Omit<ProfileRow, 'created_at' | 'updated_at'> & {
+        Insert: Omit<ProfileRow, 'created_at' | 'updated_at' | 'email' | 'mobile' | 'avatar_url'> & {
+          email?: string | null;
+          mobile?: string | null;
+          avatar_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -363,10 +397,31 @@ export interface Database {
         Row: CompanyMemberRow;
         Insert: Omit<CompanyMemberRow, 'id' | 'created_at' | 'updated_at'> & {
           id?: string;
+          designation?: string | null;
+          invited_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<CompanyMemberRow>;
+        Relationships: [];
+      };
+      employee_permissions: {
+        Row: EmployeePermissionRow;
+        Insert: Omit<EmployeePermissionRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<EmployeePermissionRow>;
+        Relationships: [];
+      };
+      audit_logs: {
+        Row: AuditLogRow;
+        Insert: Omit<AuditLogRow, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<AuditLogRow>;
         Relationships: [];
       };
     };
@@ -416,6 +471,32 @@ export interface Database {
       user_company_role: {
         Args: { p_company_id: string };
         Returns: string | null;
+      };
+      user_has_module_permission: {
+        Args: {
+          p_company_id: string;
+          p_module: string;
+          p_action?: string;
+        };
+        Returns: boolean;
+      };
+      list_company_employees: {
+        Args: { p_company_id: string };
+        Returns: {
+          membership_id: string;
+          user_id: string;
+          company_id: string;
+          role: string;
+          designation: string | null;
+          is_active: boolean;
+          invited_by: string | null;
+          created_at: string;
+          updated_at: string;
+          full_name: string;
+          email: string;
+          mobile: string | null;
+          avatar_url: string | null;
+        }[];
       };
     };
     Enums: Record<string, never>;

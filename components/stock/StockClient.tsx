@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Boxes, PackageMinus, PackageOpen, Pencil, Trash2, TriangleAlert, Warehouse } from "lucide-react"
 import { useCompany } from "@/components/company-provider"
+import { usePermissions } from "@/context/PermissionContext"
+import { PermissionGate } from "@/components/auth/PermissionGate"
 import { StockFormDialog } from "@/components/stock/StockFormDialog"
 import { StockStatusBadge } from "@/components/stock/StockStatusBadge"
 import { StatCard } from "@/components/common/StatCard"
@@ -38,6 +40,7 @@ const STATUS_FILTERS: Array<{ value: string; label: string }> = [
 
 export default function StockClient() {
   const { selectedCompany } = useCompany()
+  const { can } = usePermissions()
   const [stocks, setStocks] = useState<Stock[]>([])
   const [summary, setSummary] = useState<StockSummary | null>(null)
   const [search, setSearch] = useState("")
@@ -130,26 +133,30 @@ export default function StockClient() {
       className: "text-right",
       cell: (row: Stock) => (
         <div className="flex justify-end gap-2">
-          <StockFormDialog
-            initialData={row}
-            onSaved={load}
-            trigger={
-              <Button variant="ghost" size="icon">
-                <Pencil className="h-4 w-4" />
-              </Button>
-            }
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-destructive"
-            onClick={() => {
-              setStockToDelete(row)
-              setDeleteOpen(true)
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <PermissionGate module="stock" action="edit">
+            <StockFormDialog
+              initialData={row}
+              onSaved={load}
+              trigger={
+                <Button variant="ghost" size="icon">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              }
+            />
+          </PermissionGate>
+          <PermissionGate module="stock" action="delete">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              onClick={() => {
+                setStockToDelete(row)
+                setDeleteOpen(true)
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </PermissionGate>
         </div>
       ),
     },
@@ -161,7 +168,7 @@ export default function StockClient() {
         eyebrow="Inventory"
         title="Stock"
         description={`Quality-wise textile stock for ${selectedCompany.name}`}
-        action={<StockFormDialog onSaved={load} />}
+        action={can("stock", "create") ? <StockFormDialog onSaved={load} /> : undefined}
       />
 
       <motion.div

@@ -1,6 +1,8 @@
 "use client"
 
 import { useCompany } from "@/components/company-provider"
+import { usePermissions } from "@/context/PermissionContext"
+import { PermissionGate } from "@/components/auth/PermissionGate"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Building2, PlusCircle, Pencil } from "lucide-react"
@@ -13,6 +15,7 @@ import { cn } from "@/lib/utils"
 
 export default function CompaniesClient() {
   const { companies, selectedCompany, setSelectedCompany } = useCompany()
+  const { can } = usePermissions()
   const router = useRouter()
 
   return (
@@ -22,10 +25,12 @@ export default function CompaniesClient() {
         title="Companies"
         description="Manage your companies and their details."
         action={
-          <Button onClick={() => router.push("/companies/new")}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add company
-          </Button>
+          can("companies", "create") ? (
+            <Button onClick={() => router.push("/companies/new")}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add company
+            </Button>
+          ) : undefined
         }
       />
 
@@ -35,10 +40,12 @@ export default function CompaniesClient() {
           title="No companies yet"
           description="Create your first company to start managing challans and customers."
           action={
-            <Button onClick={() => router.push("/companies/new")}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create company
-            </Button>
+            can("companies", "create") ? (
+              <Button onClick={() => router.push("/companies/new")}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create company
+              </Button>
+            ) : undefined
           }
         />
       ) : (
@@ -69,16 +76,18 @@ export default function CompaniesClient() {
                       </CardDescription>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      router.push(`/companies/${company.id}/edit`)
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <PermissionGate module="companies" action="edit">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/companies/${company.id}/edit`)
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </PermissionGate>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm text-muted-foreground">
                   <p className="line-clamp-1">{company.email || "No email"}</p>

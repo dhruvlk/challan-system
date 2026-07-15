@@ -28,14 +28,21 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // API routes must return JSON errors, not HTML redirects to /login
+  if (!user && request.nextUrl.pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const authRoutes = ['/login', '/register'];
   const publicAuthRoutes = ['/forgot-password', '/reset-password'];
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
   const isPublicAuthRoute = publicAuthRoutes.some((route) => pathname.startsWith(route));
+  const isApiRoute = pathname.startsWith('/api/');
   const isProtected =
     !isAuthRoute &&
     !isPublicAuthRoute &&
+    !isApiRoute &&
     !pathname.startsWith('/_next') &&
     !pathname.includes('.');
 

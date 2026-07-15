@@ -4,6 +4,7 @@ export type ProfileRow = {
   id: string;
   full_name: string;
   mobile: string | null;
+  email: string | null;
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
@@ -15,6 +16,8 @@ export type CompanyMemberRow = {
   user_id: string;
   role: UserRole;
   is_active: boolean;
+  designation: string | null;
+  invited_by: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -25,6 +28,8 @@ export interface CompanyMember {
   user_id: string;
   role: UserRole;
   is_active: boolean;
+  designation?: string | null;
+  invited_by?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -33,6 +38,7 @@ export interface Profile {
   id: string;
   full_name: string;
   mobile?: string | null;
+  email?: string | null;
   avatar_url?: string | null;
   created_at?: string;
   updated_at?: string;

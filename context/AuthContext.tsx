@@ -5,7 +5,10 @@ import { User, AuthContextType, RegisterCompanyInput } from '@/types/auth';
 import { createClient } from '@/lib/supabase/client';
 import { buildAppUser } from '@/lib/user-session';
 import { getProfile } from '@/services/profiles.service';
-import { getPrimaryMembership } from '@/services/company-members.service';
+import {
+  getInactiveAccountMessage,
+  getPrimaryMembership,
+} from '@/services/company-members.service';
 import {
   provisionPendingCompanyAccount,
   registerCompanyAccount,
@@ -24,6 +27,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
 
   const hydrateUser = useCallback(async (authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }) => {
+    const inactiveMessage = await getInactiveAccountMessage(authUser.id);
+    if (inactiveMessage) {
+      await signOut();
+      return null;
+    }
     const [profile, membership] = await Promise.all([
       getProfile(authUser.id),
       getPrimaryMembership(authUser.id),
@@ -39,6 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const appUser = await hydrateUser(authUser);
+    if (!appUser) {
+      setUser(null);
+      setIsAuthenticated(false);
+      return;
+    }
     setUser(appUser);
     setIsAuthenticated(true);
   }, [hydrateUser, supabase]);
@@ -51,8 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (authUser && mounted) {
         await provisionPendingCompanyAccount().catch(() => undefined);
         const appUser = await hydrateUser(authUser);
-        setUser(appUser);
-        setIsAuthenticated(true);
+        if (appUser) {
+          setUser(appUser);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
       }
       if (mounted) setIsLoading(false);
     }
@@ -63,8 +81,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         await provisionPendingCompanyAccount().catch(() => undefined);
         const appUser = await hydrateUser(session.user);
-        setUser(appUser);
-        setIsAuthenticated(true);
+        if (appUser) {
+          setUser(appUser);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
+        }
       } else {
         setUser(null);
         setIsAuthenticated(false);
@@ -81,12 +104,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     try {
       await signInWithEmail(email, password);
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const inactiveMessage = await getInactiveAccountMessage(authUser.id);
+        if (inactiveMessage) {
+          await signOut();
+          setUser(null);
+          setIsAuthenticated(false);
+          return { error: inactiveMessage };
+        }
+      }
       await refreshUser();
       return {};
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Login failed' };
     }
-  }, [refreshUser]);
+  }, [refreshUser, supabase]);
 
   const register = useCallback(async (input: RegisterCompanyInput) => {
     try {

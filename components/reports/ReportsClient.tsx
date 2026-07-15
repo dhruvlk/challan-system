@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { useCompany } from "@/components/company-provider"
+import { usePermissions } from "@/context/PermissionContext"
 import { PageHeader } from "@/components/common/PageHeader"
 import { EmptyState } from "@/components/common/EmptyState"
 import { StatCard } from "@/components/common/StatCard"
@@ -58,6 +59,7 @@ function formatCompact(value: number) {
 
 export default function ReportsClient() {
   const { selectedCompany } = useCompany()
+  const { can } = usePermissions()
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS)
   const [bundle, setBundle] = useState<ReportsBundle | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -291,30 +293,32 @@ export default function ReportsClient() {
         title="Reports"
         description={`Business insights for ${selectedCompany.name}`}
         action={
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="outline" disabled={!bundle} className="gap-2" />
-              }
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport("pdf")}>
-                <FileText className="mr-2 h-4 w-4" />
-                PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("excel")}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("csv")}>
-                <Download className="mr-2 h-4 w-4" />
-                CSV
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          can("reports", "export") ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" disabled={!bundle} className="gap-2" />
+                }
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport("pdf")}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("excel")}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Excel
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("csv")}>
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : undefined
         }
       />
 

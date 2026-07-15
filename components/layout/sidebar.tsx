@@ -16,10 +16,13 @@ import {
   PlusCircle,
   Truck,
   Warehouse,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react"
 import { FEATURES } from "@/lib/features"
+import type { PermissionModule } from "@/constants/permissions"
 import { useCompany } from "@/components/company-provider"
+import { usePermissions } from "@/context/PermissionContext"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useState } from "react"
@@ -27,33 +30,40 @@ import { LogoutDialog } from "@/components/auth/LogoutDialog"
 import { CompanyAvatar } from "@/components/companies/CompanyAvatar"
 import type { Company } from "@/types"
 
-const navigation: { name: string; href: string; icon: LucideIcon; feature?: keyof typeof FEATURES }[] = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Companies", href: "/companies", icon: Building2 },
-  { name: "Customers", href: "/parties", icon: Users },
-  { name: "Products", href: "/products", icon: Package, feature: "productsModule" },
-  { name: "Stock", href: "/stock", icon: Warehouse },
-  { name: "Delivery Challans", href: "/delivery-challans", icon: Truck },
-  { name: "Invoice", href: "/challans", icon: FileText },
-  { name: "Reports", href: "/reports", icon: PieChart },
+const navigation: {
+  name: string
+  href: string
+  icon: LucideIcon
+  feature?: keyof typeof FEATURES
+  module: PermissionModule
+}[] = [
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, module: "dashboard" },
+  { name: "Companies", href: "/companies", icon: Building2, module: "companies" },
+  { name: "Customers", href: "/parties", icon: Users, module: "customers" },
+  { name: "Products", href: "/products", icon: Package, feature: "productsModule", module: "products" },
+  { name: "Stock", href: "/stock", icon: Warehouse, module: "stock" },
+  { name: "Delivery Challans", href: "/delivery-challans", icon: Truck, module: "delivery_challans" },
+  { name: "Invoice", href: "/challans", icon: FileText, module: "invoices" },
+  { name: "Reports", href: "/reports", icon: PieChart, module: "reports" },
+  { name: "Employees", href: "/employees", icon: UsersRound, module: "employees" },
 ]
-
-const visibleNavigation = navigation.filter(
-  (item) => !item.feature || FEATURES[item.feature]
-)
 
 interface SidebarContentProps {
   pathname: string
   selectedCompany: Company | null
+  navItems: typeof navigation
   onNavigate?: () => void
   onLogoutClick: () => void
+  canCreateDeliveryChallan: boolean
 }
 
 function SidebarContent({
   pathname,
   selectedCompany,
+  navItems,
   onNavigate,
   onLogoutClick,
+  canCreateDeliveryChallan,
 }: SidebarContentProps) {
   return (
     <div className="flex h-full flex-col bg-sidebar">
@@ -85,7 +95,7 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-auto px-3 py-4">
-        {visibleNavigation.map((item) => {
+        {navItems.map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"
@@ -117,18 +127,21 @@ function SidebarContent({
       </nav>
 
       <div className="space-y-2 border-t border-sidebar-border p-4">
-        <div className="rounded-xl border border-border/50 bg-card p-4 shadow-xs">
-          <p className="text-sm font-medium">Quick action</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Create a delivery challan</p>
-          <Button
-            size="sm"
-            className="mt-3 w-full"
-            render={<Link href="/challans/new" onClick={onNavigate} />}
-          >
-            <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
-            New Challan
-          </Button>
-        </div>
+        {canCreateDeliveryChallan && (
+          <div className="rounded-xl border border-border/50 bg-card p-4 shadow-xs">
+            <p className="text-sm font-medium">Quick action</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Create a delivery challan</p>
+            <Button
+              size="sm"
+              className="mt-3 w-full"
+              render={<Link href="/delivery-challans/new" onClick={onNavigate} />}
+              nativeButton={false}
+            >
+              <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
+              New Delivery Challan
+            </Button>
+          </div>
+        )}
         <Button
           variant="ghost"
           className="w-full justify-start text-muted-foreground hover:text-destructive"
@@ -145,14 +158,23 @@ function SidebarContent({
 export function Sidebar() {
   const pathname = usePathname()
   const { selectedCompany } = useCompany()
+  const { can, canView, isLoading } = usePermissions()
   const [open, setOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
   const closeMobileMenu = () => setOpen(false)
 
+  const navItems = navigation.filter((item) => {
+    if (item.feature && !FEATURES[item.feature]) return false
+    if (isLoading) return item.module === "dashboard"
+    return canView(item.module)
+  })
+
   const sidebarProps: SidebarContentProps = {
     pathname,
     selectedCompany,
+    navItems,
+    canCreateDeliveryChallan: can("delivery_challans", "create"),
     onLogoutClick: () => setLogoutDialogOpen(true),
   }
 
