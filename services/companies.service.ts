@@ -83,9 +83,17 @@ export async function addCompany(company: Omit<Company, 'id' | 'created_at' | 'u
 
 export async function updateCompany(company: Company): Promise<Company> {
   const { id, user_id: _uid, created_at: _ca, updated_at: _ua, ...rest } = company;
+  const payload = {
+    ...rest,
+    invoice_start_number: rest.invoice_start_number ?? 1,
+    delivery_challan_start_number: rest.delivery_challan_start_number ?? 1,
+    number_fy_format: rest.number_fy_format ?? 'YYYY',
+    default_gst_type: rest.default_gst_type ?? 'cgst_sgst',
+    terms_conditions: rest.invoice_terms ?? rest.terms_conditions ?? null,
+  };
   const { data, error } = await supabase()
     .from('companies')
-    .update(rest)
+    .update(payload)
     .eq('id', id)
     .select()
     .single();
@@ -99,9 +107,13 @@ export async function deleteCompany(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function uploadCompanyLogo(companyId: string, file: File): Promise<string> {
+async function uploadCompanyAsset(
+  companyId: string,
+  file: File,
+  folder: 'logo' | 'stamp' | 'signature'
+): Promise<string> {
   const ext = file.name.split('.').pop() ?? 'png';
-  const path = `${companyId}/${Date.now()}.${ext}`;
+  const path = `${companyId}/${folder}-${Date.now()}.${ext}`;
 
   const { error } = await supabase().storage.from('company-logos').upload(path, file, {
     upsert: true,
@@ -112,4 +124,16 @@ export async function uploadCompanyLogo(companyId: string, file: File): Promise<
 
   const { data } = supabase().storage.from('company-logos').getPublicUrl(path);
   return data.publicUrl;
+}
+
+export async function uploadCompanyLogo(companyId: string, file: File): Promise<string> {
+  return uploadCompanyAsset(companyId, file, 'logo');
+}
+
+export async function uploadCompanyStamp(companyId: string, file: File): Promise<string> {
+  return uploadCompanyAsset(companyId, file, 'stamp');
+}
+
+export async function uploadCompanySignature(companyId: string, file: File): Promise<string> {
+  return uploadCompanyAsset(companyId, file, 'signature');
 }

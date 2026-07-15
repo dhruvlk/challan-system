@@ -19,6 +19,13 @@ function legacyFallbackMatrix(role: string | null | undefined): PermissionMatrix
       can_delete: false,
       can_export: false,
     };
+    matrix.settings = {
+      can_view: false,
+      can_create: false,
+      can_edit: false,
+      can_delete: false,
+      can_export: false,
+    };
     return matrix;
   }
   // Staff without an explicit matrix: dashboard only

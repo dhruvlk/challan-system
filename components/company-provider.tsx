@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getCompanies, getSelectedCompanyId, setSelectedCompanyId } from '@/services/companies.service'
 import { useAuth } from '@/hooks/useAuth'
+import { applyCompanyTheme } from '@/lib/company-theme'
 import { Company } from '@/types'
 
 interface CompanyContextType {
@@ -57,8 +58,13 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
     refreshCompanies()
   }, [isAuthenticated, user?.companyId])
 
+  useEffect(() => {
+    applyCompanyTheme(selectedCompany)
+  }, [selectedCompany])
+
   const handleSetSelectedCompany = async (company: Company | null) => {
     setSelectedCompany(company)
+    applyCompanyTheme(company)
     if (company) {
       await setSelectedCompanyId(company.id)
       setCompanies((prev) =>

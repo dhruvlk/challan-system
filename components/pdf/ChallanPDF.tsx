@@ -1,8 +1,14 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Svg, Path, Image } from '@react-pdf/renderer';
 import { Challan, Company, Customer } from '@/types';
 import { numberToWords } from '@/lib/number-to-words';
-import { formatCompanyAddress, getBankDetailRows, parseTerms, itemDescription, resolveHsnCode } from '@/lib/pdf-utils';
+import {
+  formatCompanyAddress,
+  getBankDetailRows,
+  itemDescription,
+  resolveHsnCode,
+  resolveInvoiceTerms,
+} from '@/lib/pdf-utils';
 import { getItemPieces, getItemQuantityDisplay } from '@/lib/challan-item';
 
 // Register standard fonts
@@ -317,7 +323,7 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
   const igst = challan.igst_amount ?? 0;
   const grandTotal = challan.grand_total ?? subtotal + cgst + sgst + igst + (challan.other_charges ?? 0);
   const bankRows = getBankDetailRows(company);
-  const terms = parseTerms(company.terms_conditions);
+  const terms = resolveInvoiceTerms(company);
   const hsnCode = resolveHsnCode(company, items);
   const MAX_ROWS = 12;
   const displayItems = Array(MAX_ROWS).fill(null).map((_, i) => items[i] ?? null);
@@ -554,8 +560,18 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
           <View style={styles.signatureSection}>
             <View style={{ alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
               <Text style={styles.forCompanyText}>For, {company.name}</Text>
-              <View style={styles.signatureLine}>
-                <Text style={styles.signatureText}>SIGNATURE</Text>
+              <View style={{ alignItems: 'center', gap: 4 }}>
+                {company.stamp_url ? (
+                  // eslint-disable-next-line jsx-a11y/alt-text
+                  <Image src={company.stamp_url} style={{ width: 56, height: 56, objectFit: 'contain' }} />
+                ) : null}
+                {company.signature_url ? (
+                  // eslint-disable-next-line jsx-a11y/alt-text
+                  <Image src={company.signature_url} style={{ width: 90, height: 36, objectFit: 'contain' }} />
+                ) : null}
+                <View style={styles.signatureLine}>
+                  <Text style={styles.signatureText}>SIGNATURE</Text>
+                </View>
               </View>
             </View>
           </View>

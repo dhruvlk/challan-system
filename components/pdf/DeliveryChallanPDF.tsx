@@ -1,7 +1,7 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, Svg, Path } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Svg, Path, Image } from '@react-pdf/renderer';
 import type { Company, Customer, DeliveryChallan } from '@/types';
-import { formatCompanyAddress } from '@/lib/pdf-utils';
+import { formatCompanyAddress, resolveDeliveryChallanTerms } from '@/lib/pdf-utils';
 
 Font.register({
   family: 'Gujarati',
@@ -465,7 +465,8 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
     .filter(Boolean)
     .join(', ');
   const [addrLine1, addrLine2] = splitAddressLines(customerAddress);
-  const displayTerms = DEFAULT_TERMS;
+  const customTerms = resolveDeliveryChallanTerms(company);
+  const displayTerms = customTerms.length > 0 ? customTerms : DEFAULT_TERMS;
 
   const pages = chunkItems(items, PAGE_CAPACITY);
 
@@ -639,6 +640,14 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                 </View>
                 <Text style={styles.guaranteeText}>NO DYEING GUARANTEE</Text>
                 <View style={styles.signatureWrap}>
+                  {company.stamp_url ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image src={company.stamp_url} style={{ width: 40, height: 40, objectFit: 'contain', marginBottom: 2 }} />
+                  ) : null}
+                  {company.signature_url ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image src={company.signature_url} style={{ width: 70, height: 28, objectFit: 'contain', marginBottom: 2 }} />
+                  ) : null}
                   <View style={styles.signatureLine} />
                   <Text style={styles.signatureText}>SIGNATURE</Text>
                 </View>

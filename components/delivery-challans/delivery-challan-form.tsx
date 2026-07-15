@@ -241,6 +241,11 @@ export function DeliveryChallanForm({ initialData }: { initialData?: DeliveryCha
         },
   })
 
+  useEffect(() => {
+    if (initialData || !selectedCompany?.default_delivered_by) return
+    form.setValue("delivered_by", selectedCompany.default_delivered_by)
+  }, [selectedCompany?.id, selectedCompany?.default_delivered_by, initialData])
+
   const { fields, append, insert, remove } = useFieldArray({
     control: form.control,
     name: "items",

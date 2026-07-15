@@ -22,7 +22,7 @@ export default function DashboardLayout({
             <div className="flex min-w-0 flex-1 flex-col">
               <Header />
               <main className="scrollbar-stable min-h-0 flex-1 overflow-x-hidden">
-                <PageTransition className="mx-auto w-full max-w-7xl px-4 py-5 md:px-6 md:py-6 lg:px-8">
+                <PageTransition className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 sm:py-5 md:px-6 md:py-6 lg:px-8">
                   <RoutePermissionGate>{children}</RoutePermissionGate>
                 </PageTransition>
               </main>

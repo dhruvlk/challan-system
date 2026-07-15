@@ -17,6 +17,7 @@ import {
   Truck,
   Warehouse,
   UsersRound,
+  Settings,
   type LucideIcon,
 } from "lucide-react"
 import { FEATURES } from "@/lib/features"
@@ -46,6 +47,7 @@ const navigation: {
   { name: "Invoice", href: "/challans", icon: FileText, module: "invoices" },
   { name: "Reports", href: "/reports", icon: PieChart, module: "reports" },
   { name: "Employees", href: "/employees", icon: UsersRound, module: "employees" },
+  { name: "Settings", href: "/settings", icon: Settings, module: "settings" },
 ]
 
 interface SidebarContentProps {
@@ -55,6 +57,7 @@ interface SidebarContentProps {
   onNavigate?: () => void
   onLogoutClick: () => void
   canCreateDeliveryChallan: boolean
+  collapsed?: boolean
 }
 
 function SidebarContent({
@@ -64,14 +67,19 @@ function SidebarContent({
   onNavigate,
   onLogoutClick,
   canCreateDeliveryChallan,
+  collapsed = false,
 }: SidebarContentProps) {
   return (
     <div className="flex h-full flex-col bg-sidebar">
-      <div className="border-b border-sidebar-border px-4 py-4">
+      <div className={cn("border-b border-sidebar-border py-4", collapsed ? "px-2" : "px-4")}>
         <Link
           href="/"
-          className="group flex items-center gap-3.5 rounded-xl p-2 transition-colors hover:bg-sidebar-accent/60"
+          className={cn(
+            "group flex items-center rounded-xl p-2 transition-colors hover:bg-sidebar-accent/60",
+            collapsed ? "justify-center" : "gap-3.5"
+          )}
           onClick={onNavigate}
+          title={selectedCompany?.name ?? "Company"}
         >
           <CompanyAvatar
             name={selectedCompany?.name ?? "Company"}
@@ -79,22 +87,24 @@ function SidebarContent({
             size="sidebar"
             interactive
           />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold leading-tight tracking-tight text-sidebar-foreground">
-              {selectedCompany?.name ?? "Select company"}
-            </p>
-            {selectedCompany?.gst_number ? (
-              <p className="mt-1 truncate text-xs text-muted-foreground">
-                GST {selectedCompany.gst_number}
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-semibold leading-tight tracking-tight text-sidebar-foreground">
+                {selectedCompany?.name ?? "Select company"}
               </p>
-            ) : (
-              <p className="mt-1 text-xs text-muted-foreground">Company workspace</p>
-            )}
-          </div>
+              {selectedCompany?.gst_number ? (
+                <p className="mt-1 truncate text-xs text-muted-foreground">
+                  GST {selectedCompany.gst_number}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">Company workspace</p>
+              )}
+            </div>
+          )}
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-auto px-3 py-4">
+      <nav className={cn("flex-1 space-y-0.5 overflow-auto py-4", collapsed ? "px-1.5" : "px-3")}>
         {navItems.map((item) => {
           const isActive =
             item.href === "/"
@@ -105,8 +115,10 @@ function SidebarContent({
               key={item.name}
               href={item.href}
               onClick={onNavigate}
+              title={item.name}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-200",
+                "relative flex items-center rounded-lg py-2.5 text-sm font-medium transition-colors duration-200",
+                collapsed ? "justify-center px-2" : "gap-3 px-3",
                 isActive
                   ? "text-primary"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -120,20 +132,20 @@ function SidebarContent({
                 />
               )}
               <item.icon className={cn("relative z-10 h-4 w-4 shrink-0", isActive && "text-primary")} />
-              <span className="relative z-10">{item.name}</span>
+              {!collapsed && <span className="relative z-10">{item.name}</span>}
             </Link>
           )
         })}
       </nav>
 
-      <div className="space-y-2 border-t border-sidebar-border p-4">
-        {canCreateDeliveryChallan && (
+      <div className={cn("space-y-2 border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
+        {canCreateDeliveryChallan && !collapsed && (
           <div className="rounded-xl border border-border/50 bg-card p-4 shadow-xs">
             <p className="text-sm font-medium">Quick action</p>
             <p className="mt-0.5 text-xs text-muted-foreground">Create a delivery challan</p>
             <Button
               size="sm"
-              className="mt-3 w-full"
+              className="mt-3 w-full min-h-10"
               render={<Link href="/delivery-challans/new" onClick={onNavigate} />}
               nativeButton={false}
             >
@@ -142,13 +154,30 @@ function SidebarContent({
             </Button>
           </div>
         )}
+        {canCreateDeliveryChallan && collapsed && (
+          <Button
+            size="icon"
+            variant="outline"
+            className="mx-auto flex h-10 w-10"
+            render={<Link href="/delivery-challans/new" onClick={onNavigate} />}
+            nativeButton={false}
+            title="New Delivery Challan"
+          >
+            <PlusCircle className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
-          className="w-full justify-start text-muted-foreground hover:text-destructive"
+          className={cn(
+            "text-muted-foreground hover:text-destructive",
+            collapsed ? "mx-auto flex h-10 w-10" : "w-full justify-start"
+          )}
+          size={collapsed ? "icon" : "default"}
           onClick={onLogoutClick}
+          title="Log out"
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Log out
+          <LogOut className={cn("h-4 w-4", !collapsed && "mr-2")} />
+          {!collapsed && "Log out"}
         </Button>
       </div>
     </div>
@@ -180,26 +209,35 @@ export function Sidebar() {
 
   return (
     <>
+      {/* Mobile: hamburger + drawer */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger
           render={
             <Button
               variant="outline"
               size="icon"
-              className="absolute top-3.5 left-3.5 z-50 md:hidden"
+              className="absolute top-3 left-3 z-50 h-11 w-11 md:hidden"
             />
           }
         >
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle navigation menu</span>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 border-sidebar-border bg-sidebar p-0">
+        <SheetContent side="left" className="w-[min(100vw-3rem,20rem)] border-sidebar-border bg-sidebar p-0">
           <SidebarContent {...sidebarProps} onNavigate={closeMobileMenu} />
         </SheetContent>
       </Sheet>
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:block lg:w-[17.5rem]">
+
+      {/* Tablet: collapsed icon rail */}
+      <aside className="sticky top-0 hidden h-screen w-[4.5rem] shrink-0 border-r border-sidebar-border bg-sidebar md:block lg:hidden">
+        <SidebarContent {...sidebarProps} collapsed />
+      </aside>
+
+      {/* Desktop: full sidebar */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-sidebar-border bg-sidebar lg:block xl:w-[17.5rem]">
         <SidebarContent {...sidebarProps} />
       </aside>
+
       <LogoutDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen} />
     </>
   )

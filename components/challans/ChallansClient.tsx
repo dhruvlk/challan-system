@@ -178,7 +178,7 @@ export default function ChallansClient() {
       header: "Actions",
       className: "text-right",
       cell: (c: Challan) => (
-        <div className="flex justify-end gap-1">
+        <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" onClick={() => router.push(`/challans/${c.id}`)} title="View details">
             <Eye className="h-4 w-4" />
           </Button>

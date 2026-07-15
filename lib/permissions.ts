@@ -1,10 +1,15 @@
 import {
   emptyPermissionMatrix,
   fullPermissionMatrix,
+  MODULE_CONFIG,
   type PermissionAction,
   type PermissionModule,
 } from '@/constants/permissions';
 import type { PermissionFlags, PermissionMatrix } from '@/types/permissions';
+
+const OWNER_ONLY_MODULES = new Set(
+  MODULE_CONFIG.filter((m) => m.ownerOnly).map((m) => m.module)
+);
 
 export function actionToFlag(action: PermissionAction): keyof PermissionFlags {
   switch (action) {
@@ -27,6 +32,7 @@ export function hasPermission(
   action: PermissionAction,
   options?: { isOwner?: boolean }
 ): boolean {
+  if (OWNER_ONLY_MODULES.has(module) && !options?.isOwner) return false;
   if (options?.isOwner) return true;
   if (!matrix) return false;
   const flags = matrix[module];
@@ -74,8 +80,8 @@ export function sanitizeEmployeeMatrix(matrix: PermissionMatrix): PermissionMatr
       can_delete: Boolean(flags.can_delete),
       can_export: Boolean(flags.can_export),
     };
-    // Employees never receive Employee Management access via matrix
-    if (module === 'employees') {
+    // Owner-only modules cannot be granted to employees
+    if (OWNER_ONLY_MODULES.has(module)) {
       next[module] = {
         can_view: false,
         can_create: false,
@@ -104,7 +110,7 @@ export function matrixToRows(
 }> {
   const sanitized = sanitizeEmployeeMatrix(matrix);
   return (Object.keys(sanitized) as PermissionModule[])
-    .filter((module) => module !== 'employees')
+    .filter((module) => !OWNER_ONLY_MODULES.has(module))
     .map((module) => ({
       company_id: companyId,
       user_id: userId,

@@ -151,17 +151,25 @@ type ChallanInput = Omit<Challan, 'id' | 'created_at' | 'updated_at' | 'customer
   items: Omit<ChallanItem, 'id' | 'challan_id' | 'created_at' | 'updated_at' | 'product'>[];
 };
 
+function resolveDefaultTaxPercents(gstType?: string | null) {
+  if (gstType === 'igst') return { cgstPercent: 0, sgstPercent: 0, igstPercent: 5 };
+  if (gstType === 'none') return { cgstPercent: 0, sgstPercent: 0, igstPercent: 0 };
+  return { cgstPercent: 2.5, sgstPercent: 2.5, igstPercent: 0 };
+}
+
 function buildChallanPayload(
   challan: ChallanInput,
-  userId?: string
+  userId?: string,
+  companyGstType?: string | null
 ) {
+  const defaults = resolveDefaultTaxPercents(companyGstType);
   const subtotal = sumItemAmounts(challan.items);
   const tax = calculateTax({
     subtotal,
     discount: challan.discount ?? 0,
-    cgstPercent: challan.cgst_percent ?? 2.5,
-    sgstPercent: challan.sgst_percent ?? 2.5,
-    igstPercent: challan.igst_percent ?? 0,
+    cgstPercent: challan.cgst_percent ?? defaults.cgstPercent,
+    sgstPercent: challan.sgst_percent ?? defaults.sgstPercent,
+    igstPercent: challan.igst_percent ?? defaults.igstPercent,
     otherCharges: challan.other_charges ?? 0,
   });
 
@@ -229,7 +237,17 @@ export async function addChallan(
   challan: ChallanInput,
   userId?: string
 ): Promise<Challan> {
-  const payload = buildChallanPayload(challan, userId);
+  const { data: companyRow } = await supabase()
+    .from('companies')
+    .select('default_gst_type')
+    .eq('id', challan.company_id)
+    .maybeSingle();
+
+  const payload = buildChallanPayload(
+    challan,
+    userId,
+    companyRow?.default_gst_type
+  );
 
   const { data, error } = await supabase()
     .from('challans')
@@ -257,6 +275,17 @@ export async function addChallan(
 
   const created = await getChallanById(data.id);
   if (!created) throw new Error('Failed to load created challan');
+
+  const { createNotification } = await import('@/services/notifications.service');
+  await createNotification({
+    companyId: created.company_id,
+    type: 'invoice_created',
+    title: 'Invoice created',
+    message: `Invoice ${created.challan_number} was created.`,
+    entityType: 'challan',
+    entityId: created.id,
+  }).catch(() => undefined);
+
   return created;
 }
 

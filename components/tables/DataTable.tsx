@@ -1,13 +1,18 @@
+"use client"
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { TableSkeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface Column<T> {
   header: string
   accessorKey?: keyof T
   cell?: (item: T) => React.ReactNode
   className?: string
+  /** Hide this field on mobile card layout */
+  hideOnMobile?: boolean
 }
 
 interface DataTableProps<T> {
@@ -19,6 +24,14 @@ interface DataTableProps<T> {
   emptyMessage?: string
   isLoading?: boolean
   hideSearch?: boolean
+  /** Prefer cards below `md` (default true) */
+  mobileCards?: boolean
+}
+
+function cellValue<T>(col: Column<T>, row: T) {
+  if (col.cell) return col.cell(row)
+  if (col.accessorKey) return String(row[col.accessorKey] || "")
+  return ""
 }
 
 export function DataTable<T>({
@@ -30,63 +43,119 @@ export function DataTable<T>({
   emptyMessage = "No results found.",
   isLoading = false,
   hideSearch = false,
+  mobileCards = true,
 }: DataTableProps<T>) {
+  const cardColumns = columns.filter((col) => !col.hideOnMobile)
+  const primary = cardColumns[0]
+  const rest = cardColumns.slice(1)
+
   return (
     <div className="space-y-4">
       {onSearchChange && !hideSearch && (
-        <div className="relative max-w-md">
+        <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={searchPlaceholder}
-            className="pl-9"
+            className="min-h-11 pl-9"
             value={searchValue || ""}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-border/60 bg-card shadow-soft">
-        {isLoading ? (
-          <TableSkeleton rows={6} cols={columns.length} />
-        ) : (
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow className="hover:bg-transparent">
-                {columns.map((col, index) => (
-                  <TableHead key={index} className={col.className}>
-                    {col.header}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-28 text-center text-muted-foreground"
-                  >
-                    {emptyMessage}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                data.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {columns.map((col, colIndex) => (
-                      <TableCell key={colIndex} className={col.className}>
-                        {col.cell
-                          ? col.cell(row)
-                          : col.accessorKey
-                            ? String(row[col.accessorKey] || "")
-                            : ""}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+      {mobileCards && (
+        <div className="space-y-3 md:hidden">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-28 animate-pulse rounded-xl border bg-muted/40" />
+            ))
+          ) : data.length === 0 ? (
+            <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground">
+              {emptyMessage}
+            </div>
+          ) : (
+            data.map((row, rowIndex) => (
+              <article
+                key={rowIndex}
+                className="rounded-xl border border-border/60 bg-card p-4 shadow-soft"
+              >
+                {primary && (
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {primary.header}
+                      </p>
+                      <div className="mt-0.5 text-base font-semibold leading-snug">
+                        {cellValue(primary, row)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <dl className="grid gap-2.5">
+                  {rest.map((col, colIndex) => (
+                    <div
+                      key={colIndex}
+                      className={cn(
+                        "flex items-start justify-between gap-3 text-sm",
+                        col.className?.includes("text-right") && "items-center"
+                      )}
+                    >
+                      <dt className="shrink-0 text-muted-foreground">{col.header}</dt>
+                      <dd className={cn("min-w-0 text-right", col.className)}>{cellValue(col, row)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </article>
+            ))
+          )}
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "overflow-hidden rounded-xl border border-border/60 bg-card shadow-soft",
+          mobileCards && "hidden md:block"
         )}
+      >
+        <div className="overflow-x-auto">
+          {isLoading ? (
+            <TableSkeleton rows={6} cols={columns.length} />
+          ) : (
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  {columns.map((col, index) => (
+                    <TableHead key={index} className={col.className}>
+                      {col.header}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-28 text-center text-muted-foreground"
+                    >
+                      {emptyMessage}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data.map((row, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      {columns.map((col, colIndex) => (
+                        <TableCell key={colIndex} className={col.className}>
+                          {cellValue(col, row)}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
     </div>
   )

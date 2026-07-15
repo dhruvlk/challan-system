@@ -149,6 +149,17 @@ export async function applyDeliveryStockDeltas(params: {
       deliveryChallanId: params.deliveryChallanId,
       userId: params.userId,
     });
+
+    const stock = await getStockById(stockId);
+    if (stock) {
+      const { notifyStockStatus } = await import('@/services/notifications.service');
+      await notifyStockStatus({
+        companyId: stock.company_id,
+        stockId: stock.id,
+        quality: stock.quality_name,
+        availableTaka: stock.available_taka,
+      }).catch(() => undefined);
+    }
   }
 }
 
@@ -319,7 +330,16 @@ export async function updateStock(
     if (movementError) throw movementError;
   }
 
-  return mapStock(data);
+  const stock = mapStock(data);
+  const { notifyStockStatus } = await import('@/services/notifications.service');
+  await notifyStockStatus({
+    companyId: stock.company_id,
+    stockId: stock.id,
+    quality: stock.quality_name,
+    availableTaka: stock.available_taka,
+  }).catch(() => undefined);
+
+  return stock;
 }
 
 export async function deleteStock(id: string): Promise<void> {

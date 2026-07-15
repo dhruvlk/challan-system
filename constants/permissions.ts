@@ -100,11 +100,12 @@ export const MODULE_CONFIG: ModuleConfig[] = [
   {
     module: 'settings',
     label: 'Settings',
-    description: 'Workspace settings',
+    description: 'Company settings and branding',
     actions: [
       { key: 'view', label: 'View' },
       { key: 'edit', label: 'Edit' },
     ],
+    ownerOnly: true,
   },
   {
     module: 'products',
@@ -125,6 +126,7 @@ export const ROUTE_MODULE_MAP: { prefix: string; module: PermissionModule }[] = 
   { prefix: '/challans', module: 'invoices' },
   { prefix: '/reports', module: 'reports' },
   { prefix: '/settings', module: 'settings' },
+  { prefix: '/notifications', module: 'dashboard' },
   { prefix: '/', module: 'dashboard' },
 ];
 

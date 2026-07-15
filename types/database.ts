@@ -60,7 +60,9 @@ export type CompanyRow = {
   id: string;
   user_id: string;
   name: string;
+  owner_name: string | null;
   logo_url: string | null;
+  stamp_url: string | null;
   gst_number: string | null;
   hsn_code: string | null;
   address: string | null;
@@ -78,11 +80,52 @@ export type CompanyRow = {
   ifsc_code: string | null;
   branch: string | null;
   bank_details: string | null;
+  upi_id: string | null;
   signature_url: string | null;
   terms_conditions: string | null;
+  invoice_terms: string | null;
+  delivery_challan_terms: string | null;
+  invoice_prefix: string | null;
+  delivery_challan_prefix: string | null;
+  invoice_start_number: number;
+  delivery_challan_start_number: number;
+  number_fy_format: 'YYYY' | 'YYYY-YY' | 'none';
+  theme_primary: string | null;
+  theme_secondary: string | null;
+  default_payment_terms: string | null;
+  default_gst_type: 'cgst_sgst' | 'igst' | 'none';
+  default_unit: string | null;
+  default_delivered_by: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+};
+
+export type CompanyBankAccountRow = {
+  id: string;
+  company_id: string;
+  bank_name: string;
+  account_name: string | null;
+  account_number: string | null;
+  ifsc_code: string | null;
+  branch: string | null;
+  upi_id: string | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificationRow = {
+  id: string;
+  company_id: string;
+  user_id: string | null;
+  type: string;
+  title: string;
+  message: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  is_read: boolean;
+  created_at: string;
 };
 
 export type CustomerRow = {
@@ -277,8 +320,44 @@ export interface Database {
           id?: string;
           created_at?: string;
           updated_at?: string;
+          owner_name?: string | null;
+          stamp_url?: string | null;
+          invoice_prefix?: string | null;
+          delivery_challan_prefix?: string | null;
+          invoice_start_number?: number;
+          delivery_challan_start_number?: number;
+          number_fy_format?: 'YYYY' | 'YYYY-YY' | 'none';
+          theme_primary?: string | null;
+          theme_secondary?: string | null;
+          invoice_terms?: string | null;
+          delivery_challan_terms?: string | null;
+          default_payment_terms?: string | null;
+          default_gst_type?: 'cgst_sgst' | 'igst' | 'none';
+          default_unit?: string | null;
+          default_delivered_by?: string | null;
+          upi_id?: string | null;
         };
         Update: Partial<CompanyRow>;
+        Relationships: [];
+      };
+      company_bank_accounts: {
+        Row: CompanyBankAccountRow;
+        Insert: Omit<CompanyBankAccountRow, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<CompanyBankAccountRow>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: NotificationRow;
+        Insert: Omit<NotificationRow, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+          is_read?: boolean;
+        };
+        Update: Partial<NotificationRow>;
         Relationships: [];
       };
       customers: {

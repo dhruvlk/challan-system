@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { useIsClient } from "@/hooks/useIsClient"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
 import { cn } from "@/lib/utils"
 
 export function Header() {
@@ -35,7 +36,8 @@ export function Header() {
   )
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-end gap-2 border-b border-border/60 glass px-4 md:gap-3 md:px-6">
+    <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-end gap-2 border-b border-border/60 glass pl-14 pr-3 sm:px-4 md:gap-3 md:pl-4 md:pr-6">
+      <div className="mr-auto min-w-0 md:mr-0" />
       {hasMultipleCompanies ? (
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -73,17 +75,19 @@ export function Header() {
         <Button
           variant="ghost"
           size="sm"
-          className="hidden h-9 md:inline-flex"
-          onClick={() => router.push("/companies")}
+          className="hidden h-10 md:inline-flex"
+          onClick={() => router.push("/settings")}
         >
-          Company settings
+          Settings
         </Button>
       )}
+
+      <NotificationBell />
 
       <button
         type="button"
         onClick={() => setTheme(isDark ? "light" : "dark")}
-        className="relative flex h-9 w-[3.75rem] items-center rounded-full border border-border/60 bg-card p-0.5 shadow-xs transition-colors"
+        className="relative flex h-10 w-[3.75rem] items-center rounded-full border border-border/60 bg-card p-0.5 shadow-xs transition-colors"
         aria-label="Toggle theme"
       >
         <span

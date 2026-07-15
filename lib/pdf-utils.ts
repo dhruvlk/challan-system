@@ -63,6 +63,15 @@ export function getBankDetailRows(company: Company): BankDetailRow[] {
   return rows;
 }
 
+export function resolveInvoiceTerms(company: Company): string[] {
+  return parseTerms(company.invoice_terms || company.terms_conditions);
+}
+
+export function resolveDeliveryChallanTerms(company: Company): string[] {
+  const fromCompany = parseTerms(company.delivery_challan_terms);
+  return fromCompany;
+}
+
 /** @deprecated Use getBankDetailRows for aligned PDF layout */
 export function formatBankDetails(company: Company): string[] {
   return getBankDetailRows(company).map((row) =>

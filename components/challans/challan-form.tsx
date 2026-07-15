@@ -109,6 +109,20 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
     }
   })
 
+  // Apply company defaults once when creating a new invoice
+  useEffect(() => {
+    if (isEditMode || !selectedCompany) return
+    const terms = selectedCompany.default_payment_terms?.trim() || "45 Days"
+    const match = terms.match(/^(\d+)\s*(.*)$/)
+    if (match) {
+      form.setValue("payment_within_value", Number(match[1]) || 45)
+      form.setValue("payment_within_unit", match[2]?.trim() || "Days")
+    }
+    if (selectedCompany.default_delivered_by) {
+      form.setValue("delivered_by", selectedCompany.default_delivered_by)
+    }
+  }, [selectedCompany?.id, isEditMode])
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items"

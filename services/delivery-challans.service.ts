@@ -243,6 +243,17 @@ export async function addDeliveryChallan(
 
   const created = await getDeliveryChallanById(data.id);
   if (!created) throw new Error('Failed to load created delivery challan');
+
+  const { createNotification } = await import('@/services/notifications.service');
+  await createNotification({
+    companyId: created.company_id,
+    type: 'delivery_challan_created',
+    title: 'Delivery challan created',
+    message: `Delivery challan ${created.challan_number} was created.`,
+    entityType: 'delivery_challan',
+    entityId: created.id,
+  }).catch(() => undefined);
+
   return created;
 }
 
