@@ -137,6 +137,8 @@
   }
   html {
     @apply font-sans scroll-smooth;
+    /* Reserve scrollbar space so content width never jumps */
+    scrollbar-gutter: stable;
   }
   h1, h2, h3, h4 {
     @apply tracking-tight text-foreground;
@@ -160,5 +162,34 @@
   }
   .text-balance {
     text-wrap: balance;
+  }
+
+  /*
+   * Animate only cell contents (not <tr>) so translateY never expands
+   * scrollable overflow / flashes a scrollbar.
+   */
+  @keyframes dc-row-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .dc-row-enter {
+    animation: dc-row-enter 180ms ease-out both;
+  }
+
+  .dc-row-cell {
+    overflow: hidden;
+  }
+
+  .scrollbar-stable {
+    /* Always reserve the vertical scrollbar track width */
+    overflow-y: scroll;
+    scrollbar-gutter: stable;
   }
 }
