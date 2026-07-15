@@ -10,6 +10,9 @@ interface StatCardProps {
   iconClassName?: string
   isLoading?: boolean
   className?: string
+  /** Future-ready trend label (e.g. "+12% vs last month") */
+  trendLabel?: string
+  trendDirection?: "up" | "down" | "neutral"
 }
 
 export function StatCard({
@@ -19,19 +22,48 @@ export function StatCard({
   iconClassName,
   isLoading,
   className,
+  trendLabel,
+  trendDirection = "neutral",
 }: StatCardProps) {
+  const valueText = String(value)
+  const isLongValue = valueText.length > 12
+
   return (
-    <Card className={cn("transition-shadow duration-200 hover:shadow-elevated", className)}>
-      <CardContent className="flex items-start justify-between gap-4 p-5">
-        <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+    <Card
+      className={cn(
+        "h-full transition-shadow duration-200 hover:shadow-elevated",
+        className
+      )}
+    >
+      <CardContent className="flex h-full items-start justify-between gap-3 p-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 pr-1">
+          <p className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-5 text-muted-foreground">
+            {title}
+          </p>
           {isLoading ? (
-            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-28" />
           ) : (
-            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+            <p
+              className={cn(
+                "break-words font-semibold tracking-tight text-foreground tabular-nums",
+                isLongValue ? "text-lg leading-7 sm:text-xl sm:leading-8" : "text-2xl leading-8"
+              )}
+              title={valueText}
+            >
               {value}
             </p>
           )}
+          <p
+            className={cn(
+              "min-h-4 text-xs font-medium leading-4",
+              !trendLabel && "invisible",
+              trendLabel && trendDirection === "up" && "text-emerald-600",
+              trendLabel && trendDirection === "down" && "text-rose-600",
+              trendLabel && trendDirection === "neutral" && "text-muted-foreground"
+            )}
+          >
+            {trendLabel || "—"}
+          </p>
         </div>
         <div
           className={cn(
