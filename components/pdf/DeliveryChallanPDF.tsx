@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 9,
+    marginBottom: 7,
   },
   fieldLabel: {
     fontFamily: 'Helvetica',
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   footerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 0,
     marginTop: 0,
   },
   footerAck: {
