@@ -640,14 +640,6 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                 </View>
                 <Text style={styles.guaranteeText}>NO DYEING GUARANTEE</Text>
                 <View style={styles.signatureWrap}>
-                  {company.stamp_url ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={company.stamp_url} style={{ width: 40, height: 40, objectFit: 'contain', marginBottom: 2 }} />
-                  ) : null}
-                  {company.signature_url ? (
-                    // eslint-disable-next-line jsx-a11y/alt-text
-                    <Image src={company.signature_url} style={{ width: 70, height: 28, objectFit: 'contain', marginBottom: 2 }} />
-                  ) : null}
                   <View style={styles.signatureLine} />
                   <Text style={styles.signatureText}>SIGNATURE</Text>
                 </View>

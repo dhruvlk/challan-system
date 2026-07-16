@@ -561,14 +561,6 @@ export function ChallanPDF({ challan, company, party }: ChallanPDFProps) {
             <View style={{ alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
               <Text style={styles.forCompanyText}>For, {company.name}</Text>
               <View style={{ alignItems: 'center', gap: 4 }}>
-                {company.stamp_url ? (
-                  // eslint-disable-next-line jsx-a11y/alt-text
-                  <Image src={company.stamp_url} style={{ width: 56, height: 56, objectFit: 'contain' }} />
-                ) : null}
-                {company.signature_url ? (
-                  // eslint-disable-next-line jsx-a11y/alt-text
-                  <Image src={company.signature_url} style={{ width: 90, height: 36, objectFit: 'contain' }} />
-                ) : null}
                 <View style={styles.signatureLine}>
                   <Text style={styles.signatureText}>SIGNATURE</Text>
                 </View>

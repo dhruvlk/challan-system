@@ -130,10 +130,18 @@ export async function uploadCompanyLogo(companyId: string, file: File): Promise<
   return uploadCompanyAsset(companyId, file, 'logo');
 }
 
+/**
+ * Future: re-enable when FEATURES.companyStampSignature is true.
+ * DB columns `stamp_url` / `signature_url` remain in place.
+ */
 export async function uploadCompanyStamp(companyId: string, file: File): Promise<string> {
   return uploadCompanyAsset(companyId, file, 'stamp');
 }
 
+/**
+ * Future: re-enable when FEATURES.companyStampSignature is true.
+ * DB columns `stamp_url` / `signature_url` remain in place.
+ */
 export async function uploadCompanySignature(companyId: string, file: File): Promise<string> {
   return uploadCompanyAsset(companyId, file, 'signature');
 }

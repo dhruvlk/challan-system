@@ -23,8 +23,6 @@ import {
 import {
   updateCompany,
   uploadCompanyLogo,
-  uploadCompanySignature,
-  uploadCompanyStamp,
 } from "@/services/companies.service"
 import {
   deleteCompanyBankAccount,
@@ -102,19 +100,11 @@ export default function SettingsClient() {
   const set = <K extends keyof Company>(key: K, value: Company[K]) =>
     setForm({ ...form, [key]: value })
 
-  const uploadAsset = async (
-    kind: "logo_url" | "stamp_url" | "signature_url",
-    file?: File
-  ) => {
+  const uploadLogo = async (file?: File) => {
     if (!file) return
     try {
-      const url =
-        kind === "logo_url"
-          ? await uploadCompanyLogo(form.id, file)
-          : kind === "stamp_url"
-            ? await uploadCompanyStamp(form.id, file)
-            : await uploadCompanySignature(form.id, file)
-      set(kind, url)
+      const url = await uploadCompanyLogo(form.id, file)
+      set("logo_url", url)
       toast.success("Uploaded. Save settings to apply.")
     } catch {
       toast.error("Upload failed")
@@ -236,32 +226,30 @@ export default function SettingsClient() {
 
       {section === "branding" && (
         <SectionCard title="Branding">
-          <div className="mb-4 flex items-center gap-4">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             <CompanyAvatar name={form.name} logoUrl={form.logo_url} size="card" />
-            <p className="text-sm text-muted-foreground">
-              Used in the app sidebar and PDFs. Initials appear when no logo is set.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            {([
-              ["logo_url", "Company Logo"],
-              ["stamp_url", "Company Stamp"],
-              ["signature_url", "Company Signature"],
-            ] as const).map(([key, label]) => (
-              <div key={key} className="space-y-2 rounded-xl border p-4">
-                <Label>{label}</Label>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="min-h-11"
-                  onChange={(e) => uploadAsset(key, e.target.files?.[0])}
-                />
-                {form[key] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={form[key] ?? ""} alt={label} className="mt-2 h-16 object-contain" />
-                ) : null}
+            <div className="min-w-0 flex-1 space-y-3 rounded-xl border p-4">
+              <div>
+                <Label>Company Logo</Label>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Used in the app sidebar. Initials appear when no logo is set.
+                </p>
               </div>
-            ))}
+              <Input
+                type="file"
+                accept="image/*"
+                className="min-h-11 max-w-md"
+                onChange={(e) => uploadLogo(e.target.files?.[0])}
+              />
+              {form.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={form.logo_url}
+                  alt="Company logo"
+                  className="mt-1 h-20 max-w-full object-contain"
+                />
+              ) : null}
+            </div>
           </div>
         </SectionCard>
       )}
