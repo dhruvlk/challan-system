@@ -11,37 +11,68 @@ import { Button } from "@/components/ui/button"
 import {
   clearAllNotifications,
   clearNotification,
-  getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-  syncPaymentDueNotifications,
 } from "@/services/notifications.service"
+import { useNotificationFetcher } from "@/hooks/useNotifications"
 import type { AppNotification } from "@/types"
 import { cn } from "@/lib/utils"
 
 export default function NotificationsClient() {
   const { selectedCompany } = useCompany()
+  const companyId = selectedCompany?.id
+  const { fetchNotifications } = useNotificationFetcher(companyId)
   const [items, setItems] = useState<AppNotification[]>([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    if (!selectedCompany) return
+    if (!companyId) return
+
     setLoading(true)
     try {
-      await syncPaymentDueNotifications(selectedCompany.id)
-      setItems(await getNotifications(selectedCompany.id, 100))
+      const result = await fetchNotifications({
+        includeList: true,
+        listLimit: 100,
+        syncPayments: true,
+      })
+      if (result) setItems(result.items)
     } catch {
       toast.error("Failed to load notifications")
     } finally {
       setLoading(false)
     }
-  }, [selectedCompany])
+  }, [companyId, fetchNotifications])
 
   useEffect(() => {
-    load()
-  }, [load])
+    if (!companyId) {
+      setItems([])
+      setLoading(false)
+      return
+    }
 
-  if (!selectedCompany) {
+    const controller = new AbortController()
+    setLoading(true)
+
+    void fetchNotifications(
+      { includeList: true, listLimit: 100, syncPayments: true },
+      controller.signal
+    )
+      .then((result) => {
+        if (result) setItems(result.items)
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          toast.error("Failed to load notifications")
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+
+    return () => controller.abort()
+  }, [companyId, fetchNotifications])
+
+  if (!selectedCompany || !companyId) {
     return (
       <EmptyState
         icon={Bell}
@@ -63,8 +94,8 @@ export default function NotificationsClient() {
               variant="outline"
               className="min-h-11"
               onClick={async () => {
-                await markAllNotificationsRead(selectedCompany.id)
-                load()
+                await markAllNotificationsRead(companyId)
+                await load()
               }}
             >
               <CheckCheck className="mr-2 h-4 w-4" />
@@ -74,8 +105,8 @@ export default function NotificationsClient() {
               variant="ghost"
               className="min-h-11 text-destructive"
               onClick={async () => {
-                await clearAllNotifications(selectedCompany.id)
-                load()
+                await clearAllNotifications(companyId)
+                await load()
               }}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -113,7 +144,7 @@ export default function NotificationsClient() {
                 onClick={async () => {
                   if (!item.is_read) {
                     await markNotificationRead(item.id)
-                    load()
+                    await load()
                   }
                 }}
               >
@@ -136,7 +167,7 @@ export default function NotificationsClient() {
                 className="h-10 w-10 self-end sm:self-start"
                 onClick={async () => {
                   await clearNotification(item.id)
-                  load()
+                  await load()
                 }}
               >
                 <Trash2 className="h-4 w-4" />

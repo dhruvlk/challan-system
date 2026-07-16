@@ -1,5 +1,14 @@
 import { createClient } from '@/lib/supabase/client';
 import {
+  appendInFilter,
+  findCustomerIdsBySearch,
+} from '@/lib/table/search-helpers';
+import {
+  buildPaginatedResult,
+  ilikePattern,
+  paginatedRange,
+} from '@/lib/table/pagination';
+import {
   applyDeliveryStockDeltas,
   parseStockError,
 } from '@/services/stocks.service';
@@ -9,6 +18,8 @@ import type {
   DeliveryChallanFilters,
   DeliveryChallanItem,
   DeliveryChallanStatus,
+  PaginatedResult,
+  PaginationParams,
 } from '@/types';
 
 const supabase = () => createClient();
@@ -17,6 +28,25 @@ const SELECT = `
   *,
   customer:customers(*),
   items:delivery_challan_items(*)
+`;
+
+const LIST_SELECT = `
+  id,
+  company_id,
+  customer_id,
+  challan_number,
+  date,
+  quality,
+  stock_id,
+  broker,
+  delivered_by,
+  status,
+  total_pieces,
+  total_meters,
+  total_weight,
+  created_at,
+  updated_at,
+  customer:customers(id, name, gst_number)
 `;
 
 function mapDeliveryChallan(row: Record<string, unknown>): DeliveryChallan {
@@ -59,39 +89,108 @@ export async function generateDeliveryChallanNumber(companyId: string): Promise<
   return data;
 }
 
+function applyDeliveryChallanFilters(
+  query: ReturnType<ReturnType<typeof supabase>['from']>,
+  companyId: string,
+  filters: DeliveryChallanFilters,
+  searchCustomerIds: string[] = []
+) {
+  let next = query.eq('company_id', companyId);
+
+  if (filters.status) next = next.eq('status', filters.status);
+  if (filters.customerId) next = next.eq('customer_id', filters.customerId);
+  if (filters.broker) next = next.ilike('broker', ilikePattern(filters.broker));
+  if (filters.quality) next = next.ilike('quality', ilikePattern(filters.quality));
+  if (filters.dateFrom) next = next.gte('date', filters.dateFrom);
+  if (filters.dateTo) next = next.lte('date', filters.dateTo);
+
+  if (filters.search?.trim()) {
+    const pattern = ilikePattern(filters.search);
+    const orParts = [
+      `challan_number.ilike.${pattern}`,
+      `quality.ilike.${pattern}`,
+      `broker.ilike.${pattern}`,
+    ];
+    appendInFilter(orParts, 'customer_id', searchCustomerIds);
+    next = next.or(orParts.join(','));
+  }
+
+  return next;
+}
+
+function applyDeliveryChallanSort(
+  query: ReturnType<ReturnType<typeof supabase>['from']>,
+  filters: DeliveryChallanFilters
+) {
+  const allowed = new Set([
+    'date',
+    'challan_number',
+    'created_at',
+    'total_pieces',
+    'total_meters',
+    'quality',
+  ]);
+  const column = filters.sort?.column && allowed.has(filters.sort.column)
+    ? filters.sort.column
+    : 'date';
+  const ascending = filters.sort?.direction === 'asc';
+
+  if (column === 'date') {
+    return query
+      .order('date', { ascending })
+      .order('created_at', { ascending });
+  }
+
+  return query.order(column, { ascending });
+}
+
+export async function getDeliveryChallansPaginated(
+  companyId: string,
+  filters: DeliveryChallanFilters = {},
+  { page = 1, pageSize = 50 }: PaginationParams = {}
+): Promise<PaginatedResult<DeliveryChallan>> {
+  const searchCustomerIds = filters.search?.trim()
+    ? await findCustomerIdsBySearch(companyId, filters.search)
+    : [];
+
+  const { from, to } = paginatedRange(page, pageSize);
+
+  let query = supabase()
+    .from('delivery_challans')
+    .select(LIST_SELECT, { count: 'exact' });
+
+  query = applyDeliveryChallanFilters(query, companyId, filters, searchCustomerIds);
+  query = applyDeliveryChallanSort(query, filters);
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return buildPaginatedResult(
+    (data ?? []).map(mapDeliveryChallan),
+    count ?? 0,
+    page,
+    pageSize
+  );
+}
+
 export async function getDeliveryChallans(
   companyId: string,
   filters: DeliveryChallanFilters = {}
 ): Promise<DeliveryChallan[]> {
-  let query = supabase()
-    .from('delivery_challans')
-    .select(SELECT)
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false });
+  const searchCustomerIds = filters.search?.trim()
+    ? await findCustomerIdsBySearch(companyId, filters.search)
+    : [];
 
-  if (filters.status) query = query.eq('status', filters.status);
-  if (filters.customerId) query = query.eq('customer_id', filters.customerId);
-  if (filters.broker) query = query.ilike('broker', `%${filters.broker}%`);
-  if (filters.dateFrom) query = query.gte('date', filters.dateFrom);
-  if (filters.dateTo) query = query.lte('date', filters.dateTo);
+  let query = supabase().from('delivery_challans').select(LIST_SELECT);
+
+  query = applyDeliveryChallanFilters(query, companyId, filters, searchCustomerIds);
+  query = applyDeliveryChallanSort(query, filters);
 
   const { data, error } = await query;
   if (error) throw error;
 
-  let rows = (data ?? []).map(mapDeliveryChallan);
-
-  if (filters.search?.trim()) {
-    const q = filters.search.trim().toLowerCase();
-    rows = rows.filter(
-      (row) =>
-        row.challan_number.toLowerCase().includes(q) ||
-        row.customer?.name?.toLowerCase().includes(q) ||
-        row.broker?.toLowerCase().includes(q) ||
-        row.quality?.toLowerCase().includes(q)
-    );
-  }
-
-  return rows;
+  return (data ?? []).map(mapDeliveryChallan);
 }
 
 export async function getDeliveryChallanById(id: string): Promise<DeliveryChallan | null> {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { toast } from "sonner"
@@ -20,6 +20,7 @@ import { PermissionGate } from "@/components/auth/PermissionGate"
 import { EmptyState } from "@/components/common/EmptyState"
 import { PageHeader } from "@/components/common/PageHeader"
 import { DataTable } from "@/components/tables/DataTable"
+import { TablePagination } from "@/components/tables/TablePagination"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { DownloadDeliveryChallanButton } from "@/components/delivery-challans/download-button"
 import { Badge } from "@/components/ui/badge"
@@ -31,26 +32,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   deleteDeliveryChallan,
   duplicateDeliveryChallan,
-  getDeliveryChallans,
+  getDeliveryChallansPaginated,
 } from "@/services/delivery-challans.service"
 import { getCustomers } from "@/services/customers.service"
-import type { DeliveryChallan, DeliveryChallanFilters, DeliveryChallanStatus } from "@/types"
+import { useServerPagination } from "@/hooks/useServerPagination"
+import type { DeliveryChallan, DeliveryChallanFilters, DeliveryChallanStatus, TableSort } from "@/types"
+
+const SORT_OPTIONS: Array<{ value: string; label: string; sort: TableSort }> = [
+  { value: "date:desc", label: "Newest first", sort: { column: "date", direction: "desc" } },
+  { value: "date:asc", label: "Oldest first", sort: { column: "date", direction: "asc" } },
+  { value: "challan_number:asc", label: "Challan No. (A–Z)", sort: { column: "challan_number", direction: "asc" } },
+  { value: "challan_number:desc", label: "Challan No. (Z–A)", sort: { column: "challan_number", direction: "desc" } },
+  { value: "total_pieces:desc", label: "Pieces (High–Low)", sort: { column: "total_pieces", direction: "desc" } },
+  { value: "quality:asc", label: "Quality (A–Z)", sort: { column: "quality", direction: "asc" } },
+]
 
 export default function DeliveryChallansClient() {
   const { selectedCompany } = useCompany()
   const { user } = useAuth()
   const { can } = usePermissions()
   const router = useRouter()
+  const { page, pageSize, setPage, setPageSize, resetPage } = useServerPagination()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<DeliveryChallanStatus | "">("")
   const [customerFilter, setCustomerFilter] = useState("")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [sortKey, setSortKey] = useState(SORT_OPTIONS[0].value)
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
   const [challans, setChallans] = useState<DeliveryChallan[]>([])
+  const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [toDelete, setToDelete] = useState<DeliveryChallan | null>(null)
+
+  const sort = useMemo(
+    () => SORT_OPTIONS.find((option) => option.value === sortKey)?.sort ?? SORT_OPTIONS[0].sort,
+    [sortKey]
+  )
 
   const filters: DeliveryChallanFilters = {
     search,
@@ -58,17 +77,19 @@ export default function DeliveryChallansClient() {
     customerId: customerFilter,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    sort,
   }
 
   const load = async () => {
     if (!selectedCompany) return
     setIsLoading(true)
     try {
-      const [data, customerList] = await Promise.all([
-        getDeliveryChallans(selectedCompany.id, filters),
+      const [result, customerList] = await Promise.all([
+        getDeliveryChallansPaginated(selectedCompany.id, filters, { page, pageSize }),
         getCustomers(selectedCompany.id),
       ])
-      setChallans(data)
+      setChallans(result.data)
+      setTotal(result.total)
       setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
     } catch {
       toast.error("Failed to load delivery challans")
@@ -79,7 +100,7 @@ export default function DeliveryChallansClient() {
 
   useEffect(() => {
     load()
-  }, [selectedCompany, search, statusFilter, customerFilter, dateFrom, dateTo])
+  }, [selectedCompany, search, statusFilter, customerFilter, dateFrom, dateTo, sortKey, page, pageSize])
 
   const confirmDelete = async () => {
     if (!toDelete) return
@@ -242,7 +263,7 @@ export default function DeliveryChallansClient() {
 
       <Card>
         <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
             <div className="space-y-1.5">
               <Label htmlFor="dc-filter-search" className="text-xs font-medium text-muted-foreground">
                 Search
@@ -251,16 +272,43 @@ export default function DeliveryChallansClient() {
                 id="dc-filter-search"
                 placeholder="Challan no., customer, quality..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  resetPage()
+                }}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Sort</Label>
+              <Select
+                value={sortKey}
+                onValueChange={(val) => {
+                  setSortKey(val || SORT_OPTIONS[0].value)
+                  resetPage()
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? "Sort"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Status</Label>
               <Select
                 value={statusFilter || "__all"}
-                onValueChange={(val) =>
+                onValueChange={(val) => {
                   setStatusFilter(val === "__all" || !val ? "" : (val as DeliveryChallanStatus))
-                }
+                  resetPage()
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Status">
@@ -282,7 +330,10 @@ export default function DeliveryChallansClient() {
               <Label className="text-xs font-medium text-muted-foreground">Customer</Label>
               <Select
                 value={customerFilter || "__all"}
-                onValueChange={(val) => setCustomerFilter(val === "__all" || !val ? "" : val)}
+                onValueChange={(val) => {
+                  setCustomerFilter(val === "__all" || !val ? "" : val)
+                  resetPage()
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Customer">
@@ -310,7 +361,10 @@ export default function DeliveryChallansClient() {
                 id="dc-filter-date-from"
                 type="date"
                 value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
+                onChange={(e) => {
+                  setDateFrom(e.target.value)
+                  resetPage()
+                }}
               />
             </div>
             <div className="space-y-1.5">
@@ -321,12 +375,24 @@ export default function DeliveryChallansClient() {
                 id="dc-filter-date-to"
                 type="date"
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
+                onChange={(e) => {
+                  setDateTo(e.target.value)
+                  resetPage()
+                }}
               />
             </div>
           </div>
 
           <DataTable columns={columns} data={challans} isLoading={isLoading} hideSearch />
+
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            isLoading={isLoading}
+          />
         </CardContent>
       </Card>
 

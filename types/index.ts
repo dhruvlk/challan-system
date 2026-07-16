@@ -215,6 +215,14 @@ export interface ChallanFilters {
   broker?: string;
   dateFrom?: string;
   dateTo?: string;
+  sort?: TableSort;
+}
+
+export type SortDirection = 'asc' | 'desc';
+
+export interface TableSort {
+  column: string;
+  direction: SortDirection;
 }
 
 export interface DashboardStats {
@@ -280,8 +288,10 @@ export interface DeliveryChallanFilters {
   status?: DeliveryChallanStatus | '';
   customerId?: string;
   broker?: string;
+  quality?: string;
   dateFrom?: string;
   dateTo?: string;
+  sort?: TableSort;
 }
 
 export type StockStatus = 'Available' | 'Low Stock' | 'Out Of Stock';
@@ -327,6 +337,8 @@ export interface StockMovement {
 export interface StockFilters {
   search?: string;
   status?: StockStatus | '';
+  hsn?: string;
+  sort?: TableSort;
 }
 
 export interface StockSummary {

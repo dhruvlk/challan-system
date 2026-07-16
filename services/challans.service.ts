@@ -2,6 +2,16 @@ import { createClient } from '@/lib/supabase/client';
 import { parseQuantityNumeric } from '@/lib/challan-item';
 import { calculateTax, sumItemAmounts } from '@/lib/tax';
 import { resolvePaymentStatus } from '@/lib/payment-status';
+import {
+  appendInFilter,
+  findChallanIdsByItemSearch,
+  findCustomerIdsBySearch,
+} from '@/lib/table/search-helpers';
+import {
+  buildPaginatedResult,
+  ilikePattern,
+  paginatedRange,
+} from '@/lib/table/pagination';
 import type {
   Challan,
   ChallanFilters,
@@ -18,6 +28,35 @@ const CHALLAN_SELECT = `
   *,
   customer:customers(*),
   items:challan_items(*, product:products(*))
+`;
+
+const CHALLAN_LIST_SELECT = `
+  id,
+  company_id,
+  customer_id,
+  challan_number,
+  date,
+  broker,
+  delivered_by,
+  status,
+  subtotal,
+  discount,
+  cgst_percent,
+  sgst_percent,
+  igst_percent,
+  cgst_amount,
+  sgst_amount,
+  igst_amount,
+  other_charges,
+  grand_total,
+  payment_status,
+  payment_amount_received,
+  payment_received_date,
+  due_date,
+  payment_terms,
+  created_at,
+  updated_at,
+  customer:customers(id, name, gst_number, mobile, broker)
 `;
 
 function mapChallan(row: Record<string, unknown>): Challan {
@@ -66,70 +105,112 @@ export async function generateChallanNumber(companyId: string): Promise<string> 
   return data;
 }
 
+async function resolveChallanSearchIds(companyId: string, search: string) {
+  const [customerIds, itemChallanIds] = await Promise.all([
+    findCustomerIdsBySearch(companyId, search),
+    findChallanIdsByItemSearch(search),
+  ]);
+  return { customerIds, itemChallanIds };
+}
+
+function applyChallanFilters(
+  query: ReturnType<ReturnType<typeof supabase>['from']>,
+  companyId: string,
+  filters: ChallanFilters,
+  searchIds: { customerIds: string[]; itemChallanIds: string[] } = {
+    customerIds: [],
+    itemChallanIds: [],
+  }
+) {
+  let next = query.eq('company_id', companyId);
+
+  if (filters.status) next = next.eq('status', filters.status);
+  if (filters.paymentStatus) next = next.eq('payment_status', filters.paymentStatus);
+  if (filters.customerId) next = next.eq('customer_id', filters.customerId);
+  if (filters.broker) next = next.ilike('broker', ilikePattern(filters.broker));
+  if (filters.dateFrom) next = next.gte('date', filters.dateFrom);
+  if (filters.dateTo) next = next.lte('date', filters.dateTo);
+
+  if (filters.search?.trim()) {
+    const pattern = ilikePattern(filters.search);
+    const orParts = [`challan_number.ilike.${pattern}`, `broker.ilike.${pattern}`];
+    appendInFilter(orParts, 'customer_id', searchIds.customerIds);
+    appendInFilter(orParts, 'id', searchIds.itemChallanIds);
+    next = next.or(orParts.join(','));
+  }
+
+  return next;
+}
+
+function applyChallanSort(
+  query: ReturnType<ReturnType<typeof supabase>['from']>,
+  filters: ChallanFilters
+) {
+  const allowed = new Set([
+    'date',
+    'challan_number',
+    'grand_total',
+    'due_date',
+    'created_at',
+  ]);
+  const column = filters.sort?.column && allowed.has(filters.sort.column)
+    ? filters.sort.column
+    : 'date';
+  const ascending = filters.sort?.direction === 'asc';
+
+  if (column === 'date') {
+    return query.order('date', { ascending }).order('created_at', { ascending });
+  }
+
+  return query.order(column, { ascending });
+}
+
 export async function getChallans(
   companyId: string,
   filters: ChallanFilters = {}
 ): Promise<Challan[]> {
-  let query = supabase()
-    .from('challans')
-    .select(CHALLAN_SELECT)
-    .eq('company_id', companyId)
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false });
+  const searchIds = filters.search?.trim()
+    ? await resolveChallanSearchIds(companyId, filters.search)
+    : { customerIds: [], itemChallanIds: [] };
 
-  if (filters.status) query = query.eq('status', filters.status);
-  if (filters.customerId) query = query.eq('customer_id', filters.customerId);
-  if (filters.broker) query = query.ilike('broker', `%${filters.broker}%`);
-  if (filters.dateFrom) query = query.gte('date', filters.dateFrom);
-  if (filters.dateTo) query = query.lte('date', filters.dateTo);
+  let query = supabase().from('challans').select(CHALLAN_LIST_SELECT);
+  query = applyChallanFilters(query, companyId, filters, searchIds);
+  query = applyChallanSort(query, filters);
 
   const { data, error } = await query;
   if (error) throw error;
 
-  let challans = (data ?? []).map(mapChallan);
-
-  if (filters.paymentStatus) {
-    challans = challans.filter((c) => c.payment_status === filters.paymentStatus);
-  }
-
-  if (filters.search?.trim()) {
-    const q = filters.search.trim().toLowerCase();
-    challans = challans.filter(
-      (c) =>
-        c.challan_number.toLowerCase().includes(q) ||
-        c.customer?.name?.toLowerCase().includes(q) ||
-        c.party?.name?.toLowerCase().includes(q) ||
-        c.customer?.gst_number?.toLowerCase().includes(q) ||
-        c.broker?.toLowerCase().includes(q) ||
-        c.items?.some(
-          (i) =>
-            i.fabric_name?.toLowerCase().includes(q) ||
-            i.quality?.toLowerCase().includes(q) ||
-            i.product?.name?.toLowerCase().includes(q) ||
-            i.description?.toLowerCase().includes(q)
-        )
-    );
-  }
-
-  return challans;
+  return (data ?? []).map(mapChallan);
 }
 
 export async function getChallansPaginated(
   companyId: string,
   filters: ChallanFilters = {},
-  { page = 1, pageSize = 15 }: PaginationParams = {}
+  { page = 1, pageSize = 50 }: PaginationParams = {}
 ): Promise<PaginatedResult<Challan>> {
-  const all = await getChallans(companyId, filters);
-  const total = all.length;
-  const from = (page - 1) * pageSize;
-  const data = all.slice(from, from + pageSize);
-  return {
-    data,
-    total,
+  const searchIds = filters.search?.trim()
+    ? await resolveChallanSearchIds(companyId, filters.search)
+    : { customerIds: [], itemChallanIds: [] };
+
+  const { from, to } = paginatedRange(page, pageSize);
+
+  let query = supabase()
+    .from('challans')
+    .select(CHALLAN_LIST_SELECT, { count: 'exact' });
+
+  query = applyChallanFilters(query, companyId, filters, searchIds);
+  query = applyChallanSort(query, filters);
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return buildPaginatedResult(
+    (data ?? []).map(mapChallan),
+    count ?? 0,
     page,
-    pageSize,
-    totalPages: Math.ceil(total / pageSize) || 1,
-  };
+    pageSize
+  );
 }
 
 export async function getChallanById(id: string): Promise<Challan | undefined> {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { Boxes, PackageMinus, PackageOpen, Pencil, Trash2, TriangleAlert, Warehouse } from "lucide-react"
 import { useCompany } from "@/components/company-provider"
@@ -12,6 +12,7 @@ import { StatCard } from "@/components/common/StatCard"
 import { PageHeader } from "@/components/common/PageHeader"
 import { EmptyState } from "@/components/common/EmptyState"
 import { DataTable } from "@/components/tables/DataTable"
+import { TablePagination } from "@/components/tables/TablePagination"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,10 +24,12 @@ import {
 } from "@/components/ui/select"
 import { toast } from "sonner"
 import { fadeInUp, staggerContainer, staggerItem } from "@/lib/motion"
+import { useServerPagination } from "@/hooks/useServerPagination"
+import type { TableSort } from "@/types"
 import {
   deleteStock,
   getStockSummary,
-  getStocks,
+  getStocksPaginated,
   parseStockError,
 } from "@/services/stocks.service"
 import type { Stock, StockStatus, StockSummary } from "@/types"
@@ -38,29 +41,53 @@ const STATUS_FILTERS: Array<{ value: string; label: string }> = [
   { value: "Out Of Stock", label: "Out Of Stock" },
 ]
 
+const SORT_OPTIONS: Array<{ value: string; label: string; sort: TableSort }> = [
+  { value: "quality_name:asc", label: "Quality (A–Z)", sort: { column: "quality_name", direction: "asc" } },
+  { value: "quality_name:desc", label: "Quality (Z–A)", sort: { column: "quality_name", direction: "desc" } },
+  { value: "available_taka:desc", label: "Available (High–Low)", sort: { column: "available_taka", direction: "desc" } },
+  { value: "available_taka:asc", label: "Available (Low–High)", sort: { column: "available_taka", direction: "asc" } },
+  { value: "total_taka:desc", label: "Total Taka (High–Low)", sort: { column: "total_taka", direction: "desc" } },
+  { value: "created_at:desc", label: "Newest first", sort: { column: "created_at", direction: "desc" } },
+  { value: "created_at:asc", label: "Oldest first", sort: { column: "created_at", direction: "asc" } },
+]
+
 export default function StockClient() {
   const { selectedCompany } = useCompany()
   const { can } = usePermissions()
+  const { page, pageSize, setPage, setPageSize, resetPage } = useServerPagination()
   const [stocks, setStocks] = useState<Stock[]>([])
+  const [total, setTotal] = useState(0)
   const [summary, setSummary] = useState<StockSummary | null>(null)
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState<string>("__all")
+  const [sortKey, setSortKey] = useState(SORT_OPTIONS[0].value)
   const [isLoading, setIsLoading] = useState(true)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [stockToDelete, setStockToDelete] = useState<Stock | null>(null)
+
+  const sort = useMemo(
+    () => SORT_OPTIONS.find((option) => option.value === sortKey)?.sort ?? SORT_OPTIONS[0].sort,
+    [sortKey]
+  )
 
   const load = async () => {
     if (!selectedCompany) return
     setIsLoading(true)
     try {
-      const [rows, stats] = await Promise.all([
-        getStocks(selectedCompany.id, {
-          search,
-          status: status === "__all" ? "" : (status as StockStatus),
-        }),
+      const [result, stats] = await Promise.all([
+        getStocksPaginated(
+          selectedCompany.id,
+          {
+            search,
+            status: status === "__all" ? "" : (status as StockStatus),
+            sort,
+          },
+          { page, pageSize }
+        ),
         getStockSummary(selectedCompany.id),
       ])
-      setStocks(rows)
+      setStocks(result.data)
+      setTotal(result.total)
       setSummary(stats)
     } catch {
       toast.error("Failed to load stock")
@@ -71,7 +98,7 @@ export default function StockClient() {
 
   useEffect(() => {
     load()
-  }, [selectedCompany, search, status])
+  }, [selectedCompany, search, status, sortKey, page, pageSize])
 
   const confirmDelete = async () => {
     if (!stockToDelete) return
@@ -221,27 +248,55 @@ export default function StockClient() {
       </motion.div>
 
       <motion.div variants={fadeInUp} initial="hidden" animate="show" className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <p className="text-sm text-muted-foreground">
             Available = Total − Sold. Sold updates automatically from Delivery Challans.
           </p>
-          <Select value={status} onValueChange={(val) => setStatus(val || "__all")}>
-            <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue>
-                {STATUS_FILTERS.find((f) => f.value === status)?.label ?? "All statuses"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_FILTERS.map((filter) => (
-                <SelectItem key={filter.value} value={filter.value}>
-                  {filter.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Select
+              value={sortKey}
+              onValueChange={(val) => {
+                setSortKey(val || SORT_OPTIONS[0].value)
+                resetPage()
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue>
+                  {SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? "Sort"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={status}
+              onValueChange={(val) => {
+                setStatus(val || "__all")
+                resetPage()
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue>
+                  {STATUS_FILTERS.find((f) => f.value === status)?.label ?? "All statuses"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTERS.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {stocks.length === 0 && !isLoading ? (
+        {total === 0 && !isLoading ? (
           <EmptyState
             icon={Warehouse}
             title="No stock qualities yet"
@@ -249,14 +304,27 @@ export default function StockClient() {
             action={<StockFormDialog onSaved={load} />}
           />
         ) : (
-          <DataTable
-            data={stocks}
-            columns={columns}
-            searchValue={search}
-            onSearchChange={setSearch}
-            isLoading={isLoading}
-            searchPlaceholder="Search by quality name..."
-          />
+          <>
+            <DataTable
+              data={stocks}
+              columns={columns}
+              searchValue={search}
+              onSearchChange={(value) => {
+                setSearch(value)
+                resetPage()
+              }}
+              isLoading={isLoading}
+              searchPlaceholder="Search by quality or HSN..."
+            />
+            <TablePagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              isLoading={isLoading}
+            />
+          </>
         )}
       </motion.div>
 

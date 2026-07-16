@@ -6,6 +6,11 @@ import type { NotificationRow } from '@/types/database';
 
 const supabase = () => createClient();
 
+/** Prevent hammering Supabase when multiple components mount or re-render. */
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+const lastPaymentSyncAt = new Map<string, number>();
+const inFlightPaymentSync = new Map<string, Promise<void>>();
+
 function mapNotification(row: NotificationRow): AppNotification {
   return {
     id: row.id,
@@ -27,7 +32,9 @@ export async function getNotifications(
 ): Promise<AppNotification[]> {
   const { data, error } = await supabase()
     .from('notifications')
-    .select('*')
+    .select(
+      'id, company_id, user_id, type, title, message, entity_type, entity_id, is_read, created_at'
+    )
     .eq('company_id', companyId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -56,7 +63,6 @@ export async function createNotification(input: {
   entityId?: string;
   userId?: string | null;
 }): Promise<AppNotification | null> {
-  // De-dupe recent identical entity notifications (24h)
   if (input.entityId && input.entityType) {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: existing } = await supabase()
@@ -121,44 +127,126 @@ export async function clearAllNotifications(companyId: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Create due/overdue payment notifications for open invoices. */
-export async function syncPaymentDueNotifications(companyId: string): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase()
-    .from('challans')
-    .select('id, challan_number, due_date, grand_total, payment_amount_received, payment_status')
-    .eq('company_id', companyId)
-    .neq('payment_status', 'Paid');
-
-  if (error || !data) return;
-
-  for (const row of data) {
-    const status = resolvePaymentStatus({
-      grand_total: Number(row.grand_total ?? 0),
-      payment_amount_received: Number(row.payment_amount_received ?? 0),
-      due_date: row.due_date,
-    });
-
-    if ((status === 'Overdue' || isPastDue(row.due_date)) && status !== 'Paid') {
-      await createNotification({
-        companyId,
-        type: 'overdue_payment',
-        title: 'Overdue payment',
-        message: `Invoice ${row.challan_number} is overdue.`,
-        entityType: 'challan',
-        entityId: row.id,
-      }).catch(() => undefined);
-    } else if (row.due_date === today && status !== 'Paid') {
-      await createNotification({
-        companyId,
-        type: 'payment_due',
-        title: 'Payment due today',
-        message: `Invoice ${row.challan_number} is due today.`,
-        entityType: 'challan',
-        entityId: row.id,
-      }).catch(() => undefined);
-    }
+/**
+ * Create due/overdue payment notifications for open invoices.
+ * Scoped to invoices due today or earlier; batched to avoid N+1 requests.
+ */
+export async function syncPaymentDueNotifications(
+  companyId: string,
+  options: { force?: boolean } = {}
+): Promise<void> {
+  const now = Date.now();
+  const last = lastPaymentSyncAt.get(companyId) ?? 0;
+  if (!options.force && now - last < SYNC_COOLDOWN_MS) {
+    return;
   }
+
+  const inFlight = inFlightPaymentSync.get(companyId);
+  if (inFlight && !options.force) {
+    return inFlight;
+  }
+
+  const run = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data, error } = await supabase()
+      .from('challans')
+      .select('id, challan_number, due_date, grand_total, payment_amount_received, payment_status')
+      .eq('company_id', companyId)
+      .neq('payment_status', 'Paid')
+      .not('due_date', 'is', null)
+      .lte('due_date', today);
+
+    if (error || !data?.length) {
+      lastPaymentSyncAt.set(companyId, Date.now());
+      return;
+    }
+
+    const candidates: Array<{
+      id: string;
+      challan_number: string;
+      type: 'overdue_payment' | 'payment_due';
+      title: string;
+      message: string;
+    }> = [];
+
+    for (const row of data) {
+      const status = resolvePaymentStatus({
+        grand_total: Number(row.grand_total ?? 0),
+        payment_amount_received: Number(row.payment_amount_received ?? 0),
+        due_date: row.due_date,
+      });
+
+      if (status === 'Paid') continue;
+
+      if (status === 'Overdue' || isPastDue(row.due_date)) {
+        candidates.push({
+          id: row.id,
+          challan_number: row.challan_number,
+          type: 'overdue_payment',
+          title: 'Overdue payment',
+          message: `Invoice ${row.challan_number} is overdue.`,
+        });
+      } else if (row.due_date === today) {
+        candidates.push({
+          id: row.id,
+          challan_number: row.challan_number,
+          type: 'payment_due',
+          title: 'Payment due today',
+          message: `Invoice ${row.challan_number} is due today.`,
+        });
+      }
+    }
+
+    if (!candidates.length) {
+      lastPaymentSyncAt.set(companyId, Date.now());
+      return;
+    }
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const entityIds = candidates.map((row) => row.id);
+
+    const { data: existing } = await supabase()
+      .from('notifications')
+      .select('entity_id, type')
+      .eq('company_id', companyId)
+      .eq('entity_type', 'challan')
+      .in('entity_id', entityIds)
+      .gte('created_at', since);
+
+    const existingKeys = new Set(
+      (existing ?? []).map((row) => `${row.type}:${row.entity_id}`)
+    );
+
+    const inserts = candidates
+      .filter((row) => !existingKeys.has(`${row.type}:${row.id}`))
+      .map((row) => ({
+        company_id: companyId,
+        user_id: null,
+        type: row.type,
+        title: row.title,
+        message: row.message,
+        entity_type: 'challan',
+        entity_id: row.id,
+        is_read: false,
+      }));
+
+    if (inserts.length) {
+      const { error: insertError } = await supabase().from('notifications').insert(inserts);
+      if (insertError) throw insertError;
+    }
+
+    lastPaymentSyncAt.set(companyId, Date.now());
+  };
+
+  const promise = run().finally(() => {
+    if (inFlightPaymentSync.get(companyId) === promise) {
+      inFlightPaymentSync.delete(companyId);
+    }
+  });
+
+  inFlightPaymentSync.set(companyId, promise);
+  return promise;
 }
 
 export async function notifyStockStatus(input: {

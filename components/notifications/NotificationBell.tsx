@@ -14,12 +14,10 @@ import {
 } from "@/components/ui/popover"
 import {
   clearNotification,
-  getNotifications,
-  getUnreadNotificationCount,
   markAllNotificationsRead,
   markNotificationRead,
-  syncPaymentDueNotifications,
 } from "@/services/notifications.service"
+import { useNotificationFetcher } from "@/hooks/useNotifications"
 import type { AppNotification } from "@/types"
 import { cn } from "@/lib/utils"
 
@@ -36,44 +34,74 @@ function formatRelativeTime(value?: string | null) {
 
 export function NotificationBell() {
   const { selectedCompany } = useCompany()
+  const companyId = selectedCompany?.id
   const router = useRouter()
+  const { fetchNotifications } = useNotificationFetcher(companyId)
   const [items, setItems] = useState<AppNotification[]>([])
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
+  const [loadingList, setLoadingList] = useState(false)
 
-  const refresh = useCallback(async () => {
-    if (!selectedCompany) {
+  const refreshUnread = useCallback(async () => {
+    const result = await fetchNotifications({ includeList: false })
+    if (!result) return
+    setUnread(result.unread)
+  }, [fetchNotifications])
+
+  const refreshPanel = useCallback(async () => {
+    setLoadingList(true)
+    try {
+      const result = await fetchNotifications({
+        includeList: true,
+        listLimit: 8,
+        syncPayments: true,
+      })
+      if (!result) return
+      setItems(result.items)
+      setUnread(result.unread)
+    } finally {
+      setLoadingList(false)
+    }
+  }, [fetchNotifications])
+
+  useEffect(() => {
+    if (!companyId) {
       setItems([])
       setUnread(0)
       return
     }
-    try {
-      // Best-effort sync; never block the panel if this fails
-      await syncPaymentDueNotifications(selectedCompany.id).catch(() => undefined)
-      const [rows, count] = await Promise.all([
-        getNotifications(selectedCompany.id, 8),
-        getUnreadNotificationCount(selectedCompany.id),
-      ])
-      setItems(rows)
-      setUnread(count)
-    } catch {
-      // Keep panel usable even if fetch fails
-      setItems([])
-      setUnread(0)
-    }
-  }, [selectedCompany])
+
+    const controller = new AbortController()
+    void fetchNotifications({ includeList: false }, controller.signal).then((result) => {
+      if (result) setUnread(result.unread)
+    })
+
+    return () => controller.abort()
+  }, [companyId, fetchNotifications])
 
   useEffect(() => {
-    refresh()
-    const id = window.setInterval(refresh, 60_000)
-    return () => window.clearInterval(id)
-  }, [refresh])
+    if (!open || !companyId) return
 
-  useEffect(() => {
-    if (open) refresh()
-  }, [open, refresh])
+    const controller = new AbortController()
+    setLoadingList(true)
 
-  if (!selectedCompany) return null
+    void fetchNotifications(
+      { includeList: true, listLimit: 8, syncPayments: true },
+      controller.signal
+    )
+      .then((result) => {
+        if (!result) return
+        setItems(result.items)
+        setUnread(result.unread)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingList(false)
+      })
+
+    return () => controller.abort()
+  }, [open, companyId, fetchNotifications])
+
+  if (!selectedCompany || !companyId) return null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -109,8 +137,8 @@ export function NotificationBell() {
             disabled={!unread}
             onClick={async () => {
               try {
-                await markAllNotificationsRead(selectedCompany.id)
-                await refresh()
+                await markAllNotificationsRead(companyId)
+                await refreshPanel()
               } catch {
                 toast.error("Could not mark all as read")
               }
@@ -122,7 +150,13 @@ export function NotificationBell() {
         </div>
 
         <div className="max-h-80 overflow-y-auto">
-          {items.length === 0 ? (
+          {loadingList ? (
+            <div className="space-y-2 px-3 py-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-md bg-muted" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">
               No notifications yet
             </p>
@@ -154,6 +188,7 @@ export function NotificationBell() {
                     } else {
                       router.push("/notifications")
                     }
+                    void refreshUnread()
                   }}
                 >
                   <p className="truncate text-sm font-medium">{item.title}</p>
@@ -176,7 +211,7 @@ export function NotificationBell() {
                   onClick={async () => {
                     try {
                       await clearNotification(item.id)
-                      await refresh()
+                      await refreshPanel()
                     } catch {
                       toast.error("Could not clear notification")
                     }

@@ -1,13 +1,19 @@
 import { createClient } from '@/lib/supabase/client';
+import {
+  buildPaginatedResult,
+  ilikePattern,
+  paginatedRange,
+} from '@/lib/table/pagination';
 import type {
   Stock,
   StockFilters,
   StockMovement,
-  StockStatus,
   StockSummary,
   StockTransactionType,
+  PaginatedResult,
+  PaginationParams,
 } from '@/types';
-import { getStockStatus } from '@/types';
+import { getStockStatus, STOCK_LOW_THRESHOLD } from '@/types';
 import type { StockMovementRow, StockRow } from '@/types/database';
 
 const supabase = () => createClient();
@@ -163,28 +169,91 @@ export async function applyDeliveryStockDeltas(params: {
   }
 }
 
+const STOCK_LIST_COLUMNS =
+  'id, company_id, quality_name, total_taka, sold_taka, available_taka, hsn_code, remarks, created_by, created_at, updated_at';
+
+type StockListQuery = ReturnType<ReturnType<typeof supabase>['from']>;
+
+function applyStockFilters(query: StockListQuery, companyId: string, filters: StockFilters) {
+  let next = query.eq('company_id', companyId);
+
+  if (filters.search?.trim()) {
+    const pattern = ilikePattern(filters.search);
+    next = next.or(`quality_name.ilike.${pattern},hsn_code.ilike.${pattern}`);
+  }
+
+  if (filters.hsn?.trim()) {
+    next = next.ilike('hsn_code', ilikePattern(filters.hsn));
+  }
+
+  if (filters.status === 'Out Of Stock') {
+    next = next.lte('available_taka', 0);
+  } else if (filters.status === 'Low Stock') {
+    next = next.gt('available_taka', 0).lte('available_taka', STOCK_LOW_THRESHOLD);
+  } else if (filters.status === 'Available') {
+    next = next.gt('available_taka', STOCK_LOW_THRESHOLD);
+  }
+
+  return next;
+}
+
+function applyStockSort(query: StockListQuery, filters: StockFilters) {
+  const allowed = new Set([
+    'quality_name',
+    'available_taka',
+    'total_taka',
+    'sold_taka',
+    'hsn_code',
+    'created_at',
+  ]);
+  const column = filters.sort?.column && allowed.has(filters.sort.column)
+    ? filters.sort.column
+    : 'quality_name';
+  const ascending = filters.sort?.direction === 'asc';
+  return query.order(column, { ascending });
+}
+
+export async function getStocksPaginated(
+  companyId: string,
+  filters: StockFilters = {},
+  { page = 1, pageSize = 50 }: PaginationParams = {}
+): Promise<PaginatedResult<Stock>> {
+  const { from, to } = paginatedRange(page, pageSize);
+
+  let query = supabase()
+    .from('stocks')
+    .select(STOCK_LIST_COLUMNS, { count: 'exact' });
+
+  query = applyStockFilters(query, companyId, filters);
+  query = applyStockSort(query, filters);
+  query = query.range(from, to);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+
+  return buildPaginatedResult(
+    (data ?? []).map(mapStock),
+    count ?? 0,
+    page,
+    pageSize
+  );
+}
+
 export async function getStocks(
   companyId: string,
   filters: StockFilters = {}
 ): Promise<Stock[]> {
   let query = supabase()
     .from('stocks')
-    .select('*')
-    .eq('company_id', companyId)
-    .order('quality_name');
+    .select(STOCK_LIST_COLUMNS)
+    .eq('company_id', companyId);
 
-  if (filters.search?.trim()) {
-    query = query.ilike('quality_name', `%${filters.search.trim()}%`);
-  }
+  query = applyStockFilters(query, companyId, filters);
+  query = applyStockSort(query, filters);
 
   const { data, error } = await query;
   if (error) throw error;
-
-  let stocks = (data ?? []).map(mapStock);
-  if (filters.status) {
-    stocks = stocks.filter((s) => getStockStatus(s) === (filters.status as StockStatus));
-  }
-  return stocks;
+  return (data ?? []).map(mapStock);
 }
 
 export async function getStockById(id: string): Promise<Stock | null> {
@@ -197,14 +266,26 @@ export async function getStockById(id: string): Promise<Stock | null> {
 }
 
 export async function getStockSummary(companyId: string): Promise<StockSummary> {
-  const stocks = await getStocks(companyId);
+  const { data, error } = await supabase()
+    .from('stocks')
+    .select('total_taka, sold_taka, available_taka')
+    .eq('company_id', companyId);
+
+  if (error) throw error;
+
+  const stocks = (data ?? []).map((row) => ({
+    total_taka: Number(row.total_taka) || 0,
+    sold_taka: Number(row.sold_taka) || 0,
+    available_taka: Number(row.available_taka) || 0,
+  }));
+
   return {
     totalQualities: stocks.length,
     totalTaka: stocks.reduce((sum, s) => sum + s.total_taka, 0),
     totalSoldTaka: stocks.reduce((sum, s) => sum + s.sold_taka, 0),
     totalAvailableTaka: stocks.reduce((sum, s) => sum + s.available_taka, 0),
-    lowStockCount: stocks.filter((s) => getStockStatus(s) === 'Low Stock').length,
-    outOfStockCount: stocks.filter((s) => getStockStatus(s) === 'Out Of Stock').length,
+    lowStockCount: stocks.filter((s) => getStockStatus(s.available_taka) === 'Low Stock').length,
+    outOfStockCount: stocks.filter((s) => getStockStatus(s.available_taka) === 'Out Of Stock').length,
   };
 }
 

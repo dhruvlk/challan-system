@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/context/PermissionContext"
@@ -11,12 +11,23 @@ import { EmptyState } from "@/components/common/EmptyState"
 import { PlusCircle, Eye, Printer, Edit, Copy, Trash2, Building2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import {
-  getChallans,
+  getChallansPaginated,
   deleteChallan,
   duplicateChallan,
 } from "@/services/challans.service"
 import { getCustomers } from "@/services/customers.service"
-import { Challan, ChallanFilters, ChallanPaymentStatus, ChallanStatus } from "@/types"
+import { Challan, ChallanFilters, ChallanPaymentStatus, ChallanStatus, TableSort } from "@/types"
+import { useServerPagination } from "@/hooks/useServerPagination"
+
+const SORT_OPTIONS: Array<{ value: string; label: string; sort: TableSort }> = [
+  { value: "date:desc", label: "Newest first", sort: { column: "date", direction: "desc" } },
+  { value: "date:asc", label: "Oldest first", sort: { column: "date", direction: "asc" } },
+  { value: "challan_number:asc", label: "Invoice No. (A–Z)", sort: { column: "challan_number", direction: "asc" } },
+  { value: "challan_number:desc", label: "Invoice No. (Z–A)", sort: { column: "challan_number", direction: "desc" } },
+  { value: "grand_total:desc", label: "Amount (High–Low)", sort: { column: "grand_total", direction: "desc" } },
+  { value: "grand_total:asc", label: "Amount (Low–High)", sort: { column: "grand_total", direction: "asc" } },
+  { value: "due_date:asc", label: "Due Date (Earliest)", sort: { column: "due_date", direction: "asc" } },
+]
 import { DownloadChallanButton } from "@/components/challans/download-button"
 import { PaymentStatusBadge } from "@/components/challans/PaymentStatusBadge"
 import {
@@ -27,6 +38,7 @@ import {
 } from "@/lib/payment-status"
 import { toast } from "sonner"
 import { DataTable } from "@/components/tables/DataTable"
+import { TablePagination } from "@/components/tables/TablePagination"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
 import { Button } from "@/components/ui/button"
@@ -40,6 +52,7 @@ export default function ChallansClient() {
   const { user } = useAuth()
   const { can } = usePermissions()
   const router = useRouter()
+  const { page, pageSize, setPage, setPageSize, resetPage } = useServerPagination()
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<ChallanStatus | "">("")
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<ChallanPaymentStatus | "">("")
@@ -47,11 +60,18 @@ export default function ChallansClient() {
   const [brokerFilter, setBrokerFilter] = useState("")
   const [dateFrom, setDateFrom] = useState("")
   const [dateTo, setDateTo] = useState("")
+  const [sortKey, setSortKey] = useState(SORT_OPTIONS[0].value)
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
   const [challans, setChallans] = useState<Challan[]>([])
+  const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [challanToDelete, setChallanToDelete] = useState<Challan | null>(null)
+
+  const sort = useMemo(
+    () => SORT_OPTIONS.find((option) => option.value === sortKey)?.sort ?? SORT_OPTIONS[0].sort,
+    [sortKey]
+  )
 
   const filters: ChallanFilters = {
     search,
@@ -61,17 +81,19 @@ export default function ChallansClient() {
     broker: brokerFilter,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    sort,
   }
 
   const loadChallans = async () => {
     if (!selectedCompany) return
     setIsLoading(true)
     try {
-      const [data, customerList] = await Promise.all([
-        getChallans(selectedCompany.id, filters),
+      const [result, customerList] = await Promise.all([
+        getChallansPaginated(selectedCompany.id, filters, { page, pageSize }),
         getCustomers(selectedCompany.id),
       ])
-      setChallans(data)
+      setChallans(result.data)
+      setTotal(result.total)
       setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
     } catch {
       toast.error("Failed to load invoices")
@@ -82,7 +104,19 @@ export default function ChallansClient() {
 
   useEffect(() => {
     loadChallans()
-  }, [selectedCompany, search, statusFilter, paymentStatusFilter, customerFilter, brokerFilter, dateFrom, dateTo])
+  }, [
+    selectedCompany,
+    search,
+    statusFilter,
+    paymentStatusFilter,
+    customerFilter,
+    brokerFilter,
+    dateFrom,
+    dateTo,
+    sortKey,
+    page,
+    pageSize,
+  ])
 
   const confirmDelete = async () => {
     if (!challanToDelete) return
@@ -223,23 +257,52 @@ export default function ChallansClient() {
       />
 
       <Card>
-        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">
           <div className="space-y-1.5 xl:col-span-2">
             <Label htmlFor="challan-filter-search" className="text-xs font-medium text-muted-foreground">
               Search Invoice No.
             </Label>
             <Input
               id="challan-filter-search"
-              placeholder="Search..."
+              placeholder="Search invoice, customer, quality..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                resetPage()
+              }}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Sort</Label>
+            <Select
+              value={sortKey}
+              onValueChange={(val) => {
+                setSortKey(val || SORT_OPTIONS[0].value)
+                resetPage()
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue>
+                  {SORT_OPTIONS.find((option) => option.value === sortKey)?.label ?? "Sort"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Delivery Status</Label>
             <Select
               value={statusFilter || "all"}
-              onValueChange={(v) => setStatusFilter(!v || v === "all" ? "" : (v as ChallanStatus))}
+              onValueChange={(v) => {
+                setStatusFilter(!v || v === "all" ? "" : (v as ChallanStatus))
+                resetPage()
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Delivery status">
@@ -263,9 +326,10 @@ export default function ChallansClient() {
             <Label className="text-xs font-medium text-muted-foreground">Payment Status</Label>
             <Select
               value={paymentStatusFilter || "all"}
-              onValueChange={(v) =>
+              onValueChange={(v) => {
                 setPaymentStatusFilter(!v || v === "all" ? "" : (v as ChallanPaymentStatus))
-              }
+                resetPage()
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Payment status">
@@ -288,7 +352,10 @@ export default function ChallansClient() {
             <Label className="text-xs font-medium text-muted-foreground">Customer</Label>
             <Select
               value={customerFilter || "all"}
-              onValueChange={(v) => setCustomerFilter(!v || v === "all" ? "" : v)}
+              onValueChange={(v) => {
+                setCustomerFilter(!v || v === "all" ? "" : v)
+                resetPage()
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Customer">
@@ -316,7 +383,10 @@ export default function ChallansClient() {
               id="challan-filter-date-from"
               type="date"
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              onChange={(e) => {
+                setDateFrom(e.target.value)
+                resetPage()
+              }}
             />
           </div>
           <div className="space-y-1.5">
@@ -327,7 +397,10 @@ export default function ChallansClient() {
               id="challan-filter-date-to"
               type="date"
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              onChange={(e) => {
+                setDateTo(e.target.value)
+                resetPage()
+              }}
             />
           </div>
           <div className="space-y-1.5 xl:col-span-2">
@@ -338,7 +411,10 @@ export default function ChallansClient() {
               id="challan-filter-broker"
               placeholder="Broker"
               value={brokerFilter}
-              onChange={(e) => setBrokerFilter(e.target.value)}
+              onChange={(e) => {
+                setBrokerFilter(e.target.value)
+                resetPage()
+              }}
             />
           </div>
         </CardContent>
@@ -347,10 +423,17 @@ export default function ChallansClient() {
       <DataTable
         data={challans}
         columns={columns}
-        searchValue={search}
-        onSearchChange={setSearch}
         isLoading={isLoading}
         hideSearch
+      />
+
+      <TablePagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        isLoading={isLoading}
       />
 
       <ConfirmationDialog
