@@ -16,7 +16,6 @@ import type {
   Challan,
   ChallanFilters,
   ChallanItem,
-  ChallanPaymentStatus,
   ChallanStatus,
   PaginatedResult,
   PaginationParams,
@@ -72,19 +71,11 @@ function mapChallan(row: Record<string, unknown>): Challan {
     payment_amount_received: Number(row.payment_amount_received ?? 0),
   };
 
-  const storedStatus = row.payment_status as ChallanPaymentStatus | undefined;
-  const resolvedStatus = resolvePaymentStatus(challan);
-
-  if (challan.id && storedStatus && storedStatus !== resolvedStatus) {
-    void supabase()
-      .from('challans')
-      .update({ payment_status: resolvedStatus })
-      .eq('id', challan.id);
-  }
-
+  // Resolve status client-side only — never write during list/detail reads.
+  // Writes belong in payment recording / invoice update flows.
   return {
     ...challan,
-    payment_status: resolvedStatus,
+    payment_status: resolvePaymentStatus(challan),
   };
 }
 

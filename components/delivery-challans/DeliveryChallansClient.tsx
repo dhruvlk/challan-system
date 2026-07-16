@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { toast } from "sonner"
@@ -66,6 +66,9 @@ export default function DeliveryChallansClient() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [toDelete, setToDelete] = useState<DeliveryChallan | null>(null)
 
+  const companyId = selectedCompany?.id
+  const customersLoadedRef = useRef(false)
+
   const sort = useMemo(
     () => SORT_OPTIONS.find((option) => option.value === sortKey)?.sort ?? SORT_OPTIONS[0].sort,
     [sortKey]
@@ -80,17 +83,23 @@ export default function DeliveryChallansClient() {
     sort,
   }
 
-  const load = async () => {
-    if (!selectedCompany) return
-    setIsLoading(true)
+  const load = async (opts?: { silent?: boolean }) => {
+    if (!companyId) return
+    const silent = opts?.silent ?? challans.length > 0
+    if (!silent) setIsLoading(true)
     try {
-      const [result, customerList] = await Promise.all([
-        getDeliveryChallansPaginated(selectedCompany.id, filters, { page, pageSize }),
-        getCustomers(selectedCompany.id),
-      ])
+      const resultPromise = getDeliveryChallansPaginated(companyId, filters, { page, pageSize })
+      const customersPromise = customersLoadedRef.current
+        ? Promise.resolve(null)
+        : getCustomers(companyId)
+
+      const [result, customerList] = await Promise.all([resultPromise, customersPromise])
       setChallans(result.data)
       setTotal(result.total)
-      setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
+      if (customerList) {
+        setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
+        customersLoadedRef.current = true
+      }
     } catch {
       toast.error("Failed to load delivery challans")
     } finally {
@@ -99,8 +108,13 @@ export default function DeliveryChallansClient() {
   }
 
   useEffect(() => {
-    load()
-  }, [selectedCompany, search, statusFilter, customerFilter, dateFrom, dateTo, sortKey, page, pageSize])
+    customersLoadedRef.current = false
+  }, [companyId])
+
+  useEffect(() => {
+    void load({ silent: challans.length > 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, search, statusFilter, customerFilter, dateFrom, dateTo, sortKey, page, pageSize])
 
   const confirmDelete = async () => {
     if (!toDelete) return

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useCompany } from "@/components/company-provider"
 import { useAuth } from "@/hooks/useAuth"
 import { usePermissions } from "@/context/PermissionContext"
@@ -84,17 +84,26 @@ export default function ChallansClient() {
     sort,
   }
 
-  const loadChallans = async () => {
-    if (!selectedCompany) return
-    setIsLoading(true)
+  const companyId = selectedCompany?.id
+  const customersLoadedRef = useRef(false)
+
+  const loadChallans = async (opts?: { silent?: boolean }) => {
+    if (!companyId) return
+    const silent = opts?.silent ?? challans.length > 0
+    if (!silent) setIsLoading(true)
     try {
-      const [result, customerList] = await Promise.all([
-        getChallansPaginated(selectedCompany.id, filters, { page, pageSize }),
-        getCustomers(selectedCompany.id),
-      ])
+      const resultPromise = getChallansPaginated(companyId, filters, { page, pageSize })
+      const customersPromise = customersLoadedRef.current
+        ? Promise.resolve(null)
+        : getCustomers(companyId)
+
+      const [result, customerList] = await Promise.all([resultPromise, customersPromise])
       setChallans(result.data)
       setTotal(result.total)
-      setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
+      if (customerList) {
+        setCustomers(customerList.map((c) => ({ id: c.id, name: c.name })))
+        customersLoadedRef.current = true
+      }
     } catch {
       toast.error("Failed to load invoices")
     } finally {
@@ -103,9 +112,14 @@ export default function ChallansClient() {
   }
 
   useEffect(() => {
-    loadChallans()
+    customersLoadedRef.current = false
+  }, [companyId])
+
+  useEffect(() => {
+    void loadChallans({ silent: challans.length > 0 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    selectedCompany,
+    companyId,
     search,
     statusFilter,
     paymentStatusFilter,

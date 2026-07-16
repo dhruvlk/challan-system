@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User, AuthContextType, RegisterCompanyInput } from '@/types/auth';
 import { createClient } from '@/lib/supabase/client';
 import { buildAppUser } from '@/lib/user-session';
@@ -20,13 +20,46 @@ import {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function usersEqual(a: User | null, b: User | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.id === b.id &&
+    a.email === b.email &&
+    a.name === b.name &&
+    a.mobile === b.mobile &&
+    a.role === b.role &&
+    a.companyId === b.companyId &&
+    a.avatarUrl === b.avatarUrl
+  );
+}
+
+/** Auth events that require a full profile/membership re-hydrate. */
+const HYDRATE_EVENTS = new Set([
+  'SIGNED_IN',
+  'SIGNED_OUT',
+  'USER_UPDATED',
+  'PASSWORD_RECOVERY',
+]);
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
+  const userRef = useRef<User | null>(null);
 
-  const hydrateUser = useCallback(async (authUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }) => {
+  const setUserStable = useCallback((next: User | null) => {
+    if (usersEqual(userRef.current, next)) return;
+    userRef.current = next;
+    setUser(next);
+  }, []);
+
+  const hydrateUser = useCallback(async (authUser: {
+    id: string;
+    email?: string;
+    user_metadata?: Record<string, unknown>;
+  }) => {
     const inactiveMessage = await getInactiveAccountMessage(authUser.id);
     if (inactiveMessage) {
       await signOut();
@@ -42,19 +75,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) {
-      setUser(null);
+      setUserStable(null);
       setIsAuthenticated(false);
       return;
     }
     const appUser = await hydrateUser(authUser);
     if (!appUser) {
-      setUser(null);
+      setUserStable(null);
       setIsAuthenticated(false);
       return;
     }
-    setUser(appUser);
+    setUserStable(appUser);
     setIsAuthenticated(true);
-  }, [hydrateUser, supabase]);
+  }, [hydrateUser, setUserStable, supabase]);
 
   useEffect(() => {
     let mounted = true;
@@ -65,10 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await provisionPendingCompanyAccount().catch(() => undefined);
         const appUser = await hydrateUser(authUser);
         if (appUser) {
-          setUser(appUser);
+          setUserStable(appUser);
           setIsAuthenticated(true);
         } else {
-          setUser(null);
+          setUserStable(null);
           setIsAuthenticated(false);
         }
       }
@@ -77,29 +110,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        await provisionPendingCompanyAccount().catch(() => undefined);
-        const appUser = await hydrateUser(session.user);
-        if (appUser) {
-          setUser(appUser);
-          setIsAuthenticated(true);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        // TOKEN_REFRESHED / INITIAL_SESSION fire on tab focus and must NOT
+        // re-hydrate profile/membership or remount the tree.
+        if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          return;
+        }
+
+        if (!HYDRATE_EVENTS.has(event) && session?.user) {
+          // Ignore unknown non-critical events while a session exists.
+          return;
+        }
+
+        if (session?.user) {
+          if (event === 'SIGNED_IN') {
+            await provisionPendingCompanyAccount().catch(() => undefined);
+          }
+          const appUser = await hydrateUser(session.user);
+          if (!mounted) return;
+          if (appUser) {
+            setUserStable(appUser);
+            setIsAuthenticated(true);
+          } else {
+            setUserStable(null);
+            setIsAuthenticated(false);
+          }
         } else {
-          setUser(null);
+          if (!mounted) return;
+          setUserStable(null);
           setIsAuthenticated(false);
         }
-      } else {
-        setUser(null);
-        setIsAuthenticated(false);
+        if (mounted) setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    );
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [hydrateUser, supabase]);
+  }, [hydrateUser, setUserStable, supabase]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -109,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const inactiveMessage = await getInactiveAccountMessage(authUser.id);
         if (inactiveMessage) {
           await signOut();
-          setUser(null);
+          setUserStable(null);
           setIsAuthenticated(false);
           return { error: inactiveMessage };
         }
@@ -119,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Login failed' };
     }
-  }, [refreshUser, supabase]);
+  }, [refreshUser, setUserStable, supabase]);
 
   const register = useCallback(async (input: RegisterCompanyInput) => {
     try {
@@ -153,9 +203,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await signOut();
-    setUser(null);
+    setUserStable(null);
     setIsAuthenticated(false);
-  }, []);
+  }, [setUserStable]);
+
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      isAuthenticated,
+      isLoading,
+      login,
+      register,
+      requestPasswordReset: handleRequestPasswordReset,
+      updatePassword: handleUpdatePassword,
+      logout,
+      refreshUser,
+    }),
+    [
+      user,
+      isAuthenticated,
+      isLoading,
+      login,
+      register,
+      handleRequestPasswordReset,
+      handleUpdatePassword,
+      logout,
+      refreshUser,
+    ]
+  );
 
   if (isLoading) {
     return (
@@ -166,19 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated,
-        isLoading,
-        login,
-        register,
-        requestPasswordReset: handleRequestPasswordReset,
-        updatePassword: handleUpdatePassword,
-        logout,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

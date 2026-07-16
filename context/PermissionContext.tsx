@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { usePathname } from 'next/navigation'
@@ -40,51 +41,70 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
   const [matrix, setMatrix] = useState<PermissionMatrix | null>(null)
   const [role, setRole] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const lastKeyRef = useRef<string | null>(null)
+  const hasDataRef = useRef(false)
 
-  const refreshPermissions = useCallback(async () => {
-    if (!user || !selectedCompany) {
+  const userId = user?.id ?? null
+  const userRole = user?.role ?? null
+  const companyId = selectedCompany?.id ?? null
+  const companyOwnerId = selectedCompany?.user_id ?? null
+
+  const refreshPermissions = useCallback(async (force = false) => {
+    if (!userId || !companyId) {
+      lastKeyRef.current = null
+      hasDataRef.current = false
       setMatrix(null)
       setRole(null)
       setIsLoading(false)
       return
     }
 
-    setIsLoading(true)
+    const cacheKey = `${userId}:${companyId}:${userRole}:${companyOwnerId}`
+    if (!force && lastKeyRef.current === cacheKey && hasDataRef.current) {
+      return
+    }
+
+    if (!hasDataRef.current) setIsLoading(true)
+
     try {
-      const companyRole = await getUserRoleForCompany(user.id, selectedCompany.id)
-      const ownsCompany = selectedCompany.user_id === user.id
+      const companyRole = await getUserRoleForCompany(userId, companyId)
+      const ownsCompany = companyOwnerId === userId
       const effectiveRole =
         companyRole === 'Owner' || ownsCompany
           ? 'Owner'
-          : (companyRole ?? user.role)
+          : (companyRole ?? userRole ?? 'Staff')
       setRole(effectiveRole)
       if (effectiveRole === 'Owner') {
         setMatrix(ownerMatrix())
       } else {
         const next = await getPermissionsForSessionUser(
-          selectedCompany.id,
-          user.id,
+          companyId,
+          userId,
           effectiveRole
         )
         setMatrix(next)
       }
+      lastKeyRef.current = cacheKey
+      hasDataRef.current = true
     } catch (error) {
       console.error('[permissions]', error)
-      // Fallback so owners are not locked out if a transient query fails
-      if (user.role === 'Owner' || selectedCompany.user_id === user.id) {
+      if (userRole === 'Owner' || companyOwnerId === userId) {
         setRole('Owner')
         setMatrix(ownerMatrix())
+        lastKeyRef.current = cacheKey
+        hasDataRef.current = true
       } else {
         setMatrix(null)
-        setRole(user.role ?? null)
+        setRole(userRole)
+        hasDataRef.current = false
       }
     } finally {
       setIsLoading(false)
     }
-  }, [user, selectedCompany])
+  }, [userId, companyId, userRole, companyOwnerId])
 
   useEffect(() => {
-    refreshPermissions()
+    void refreshPermissions(false)
   }, [refreshPermissions])
 
   const isOwner = role === 'Owner'
@@ -101,6 +121,8 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
     [can]
   )
 
+  const refresh = useCallback(() => refreshPermissions(true), [refreshPermissions])
+
   const value = useMemo(
     () => ({
       matrix,
@@ -109,9 +131,9 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       isLoading,
       can,
       canView,
-      refreshPermissions,
+      refreshPermissions: refresh,
     }),
-    [matrix, role, isOwner, isLoading, can, canView, refreshPermissions]
+    [matrix, role, isOwner, isLoading, can, canView, refresh]
   )
 
   return (

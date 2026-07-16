@@ -60,27 +60,48 @@ function formatCompact(value: number) {
 export default function ReportsClient() {
   const { selectedCompany } = useCompany()
   const { can } = usePermissions()
+  const companyId = selectedCompany?.id
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS)
   const [bundle, setBundle] = useState<ReportsBundle | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
 
   const load = useCallback(async () => {
-    if (!selectedCompany) return
-    setIsLoading(true)
+    if (!companyId) return
+    const isFirst = bundle === null
+    if (isFirst) setIsLoading(true)
     try {
-      const data = await getReportsBundle(selectedCompany.id, filters)
+      const data = await getReportsBundle(companyId, filters)
       startTransition(() => setBundle(data))
     } catch {
       toast.error("Failed to load reports")
     } finally {
       setIsLoading(false)
     }
-  }, [filters, selectedCompany])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, companyId])
 
   useEffect(() => {
-    load()
-  }, [load])
+    if (!companyId) return
+    let cancelled = false
+    setIsLoading((prev) => (bundle === null ? true : prev))
+
+    void getReportsBundle(companyId, filters)
+      .then((data) => {
+        if (!cancelled) startTransition(() => setBundle(data))
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Failed to load reports")
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, filters])
 
   const handleExport = async (type: "csv" | "excel" | "pdf") => {
     if (!bundle || !selectedCompany) return

@@ -31,13 +31,15 @@ export default function PartiesClient() {
   const [search, setSearch] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [partyToDelete, setPartyToDelete] = useState<Customer | null>(null)
+  const companyId = selectedCompany?.id
   const pageSize = 10
 
-  const loadParties = async () => {
-    if (!selectedCompany) return
-    setIsLoading(true)
+  const loadParties = async (opts?: { silent?: boolean }) => {
+    if (!companyId) return
+    const silent = opts?.silent ?? parties.length > 0
+    if (!silent) setIsLoading(true)
     try {
-      const result = await getCustomersPaginated(selectedCompany.id, search, { page, pageSize })
+      const result = await getCustomersPaginated(companyId, search, { page, pageSize })
       setParties(result.data)
       setTotal(result.total)
     } catch {
@@ -48,8 +50,9 @@ export default function PartiesClient() {
   }
 
   useEffect(() => {
-    loadParties()
-  }, [selectedCompany, search, page])
+    void loadParties({ silent: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, search, page])
 
   const handlePartyAddedOrUpdated = async (updatedParty: Customer) => {
     if (updatedParty.id && parties.find((p) => p.id === updatedParty.id)) {

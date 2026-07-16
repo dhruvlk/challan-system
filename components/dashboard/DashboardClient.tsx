@@ -30,28 +30,40 @@ export default function DashboardClient() {
   const { selectedCompany } = useCompany()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const companyId = selectedCompany?.id
 
   const firstName = user?.name?.split(" ")[0] || "there"
 
   useEffect(() => {
+    let cancelled = false
+
     async function loadData() {
-      if (!selectedCompany) {
+      if (!companyId) {
         setStats(null)
         setIsLoading(false)
         return
       }
-      setIsLoading(true)
+
+      // Soft load: keep previous dashboard visible while refreshing
+      const isFirstLoad = stats === null
+      if (isFirstLoad) setIsLoading(true)
+
       try {
-        const data = await getDashboardStats(selectedCompany.id)
-        setStats(data)
+        const data = await getDashboardStats(companyId)
+        if (!cancelled) setStats(data)
       } catch {
-        setStats(null)
+        if (!cancelled && isFirstLoad) setStats(null)
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
-    loadData()
-  }, [selectedCompany])
+
+    void loadData()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId])
 
   const chartData = useMemo(() => {
     if (!stats?.recentChallans.length) return []

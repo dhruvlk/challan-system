@@ -65,18 +65,21 @@ export default function StockClient() {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [stockToDelete, setStockToDelete] = useState<Stock | null>(null)
 
+  const companyId = selectedCompany?.id
+
   const sort = useMemo(
     () => SORT_OPTIONS.find((option) => option.value === sortKey)?.sort ?? SORT_OPTIONS[0].sort,
     [sortKey]
   )
 
-  const load = async () => {
-    if (!selectedCompany) return
-    setIsLoading(true)
+  const load = async (opts?: { silent?: boolean }) => {
+    if (!companyId) return
+    const silent = opts?.silent ?? stocks.length > 0
+    if (!silent) setIsLoading(true)
     try {
       const [result, stats] = await Promise.all([
         getStocksPaginated(
-          selectedCompany.id,
+          companyId,
           {
             search,
             status: status === "__all" ? "" : (status as StockStatus),
@@ -84,7 +87,7 @@ export default function StockClient() {
           },
           { page, pageSize }
         ),
-        getStockSummary(selectedCompany.id),
+        getStockSummary(companyId),
       ])
       setStocks(result.data)
       setTotal(result.total)
@@ -97,8 +100,9 @@ export default function StockClient() {
   }
 
   useEffect(() => {
-    load()
-  }, [selectedCompany, search, status, sortKey, page, pageSize])
+    void load({ silent: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyId, search, status, sortKey, page, pageSize])
 
   const confirmDelete = async () => {
     if (!stockToDelete) return
