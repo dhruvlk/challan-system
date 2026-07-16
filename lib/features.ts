@@ -1,11 +1,15 @@
 /**
  * Feature flags for optional modules.
- * Set `productsModule` to `true` to restore the Products UI (sidebar, routes, pages).
- * Set `companyStampSignature` to `true` to restore stamp/signature upload in Settings + PDF rendering.
+ * Set flags to `true` to restore temporarily disabled UI.
  */
 export const FEATURES = {
   productsModule: false,
-  /** Temporary off — DB columns (`stamp_url`, `signature_url`) remain for future use. */
+  /**
+   * Company Settings page (branding, prefixes, banks, terms, theme).
+   * DB columns and SettingsClient remain for future re-enable.
+   */
+  companySettingsModule: false,
+  /** Stamp/signature upload + PDF images (requires companySettingsModule). */
   companyStampSignature: false,
 } as const;
 

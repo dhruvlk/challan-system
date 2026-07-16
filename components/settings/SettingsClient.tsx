@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Company Settings UI — temporarily disabled via FEATURES.companySettingsModule.
+ * Kept on disk so the module can be re-enabled without rebuilding from scratch.
+ */
+
 import { useEffect, useState } from "react"
 import { Building2, Loader2, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"

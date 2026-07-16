@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Moon, Sun, Building2, Check } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { useIsClient } from "@/hooks/useIsClient"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -21,10 +20,8 @@ export function Header() {
   const { setTheme, resolvedTheme } = useTheme()
   const { selectedCompany, companies, setSelectedCompany } = useCompany()
   const { user } = useAuth()
-  const router = useRouter()
   const isClient = useIsClient()
   const hasMultipleCompanies = companies.length > 1
-  const canManageCompanies = user?.role === 'Owner' || user?.role === 'Admin'
 
   const isDark = isClient && resolvedTheme === "dark"
 
@@ -69,17 +66,6 @@ export function Header() {
         <div className="flex h-9 max-w-[220px] items-center gap-2 rounded-md border border-border/60 bg-card px-3 shadow-xs">
           {companyLabel}
         </div>
-      )}
-
-      {canManageCompanies && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="hidden h-10 md:inline-flex"
-          onClick={() => router.push("/settings")}
-        >
-          Settings
-        </Button>
       )}
 
       <NotificationBell />

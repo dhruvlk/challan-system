@@ -13,7 +13,6 @@ import {
   PieChart,
   LogOut,
   Menu,
-  PlusCircle,
   Truck,
   Warehouse,
   UsersRound,
@@ -47,7 +46,13 @@ const navigation: {
   { name: "Invoice", href: "/challans", icon: FileText, module: "invoices" },
   { name: "Reports", href: "/reports", icon: PieChart, module: "reports" },
   { name: "Employees", href: "/employees", icon: UsersRound, module: "employees" },
-  { name: "Settings", href: "/settings", icon: Settings, module: "settings" },
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+    feature: "companySettingsModule",
+    module: "settings",
+  },
 ]
 
 interface SidebarContentProps {
@@ -56,7 +61,6 @@ interface SidebarContentProps {
   navItems: typeof navigation
   onNavigate?: () => void
   onLogoutClick: () => void
-  canCreateDeliveryChallan: boolean
   collapsed?: boolean
 }
 
@@ -66,7 +70,6 @@ function SidebarContent({
   navItems,
   onNavigate,
   onLogoutClick,
-  canCreateDeliveryChallan,
   collapsed = false,
 }: SidebarContentProps) {
   return (
@@ -139,33 +142,6 @@ function SidebarContent({
       </nav>
 
       <div className={cn("space-y-2 border-t border-sidebar-border", collapsed ? "p-2" : "p-4")}>
-        {canCreateDeliveryChallan && !collapsed && (
-          <div className="rounded-xl border border-border/50 bg-card p-4 shadow-xs">
-            <p className="text-sm font-medium">Quick action</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">Create a delivery challan</p>
-            <Button
-              size="sm"
-              className="mt-3 w-full min-h-10"
-              render={<Link href="/delivery-challans/new" onClick={onNavigate} />}
-              nativeButton={false}
-            >
-              <PlusCircle className="mr-1.5 h-3.5 w-3.5" />
-              New Delivery Challan
-            </Button>
-          </div>
-        )}
-        {canCreateDeliveryChallan && collapsed && (
-          <Button
-            size="icon"
-            variant="outline"
-            className="mx-auto flex h-10 w-10"
-            render={<Link href="/delivery-challans/new" onClick={onNavigate} />}
-            nativeButton={false}
-            title="New Delivery Challan"
-          >
-            <PlusCircle className="h-4 w-4" />
-          </Button>
-        )}
         <Button
           variant="ghost"
           className={cn(
@@ -187,7 +163,7 @@ function SidebarContent({
 export function Sidebar() {
   const pathname = usePathname()
   const { selectedCompany } = useCompany()
-  const { can, canView, isLoading } = usePermissions()
+  const { canView, isLoading } = usePermissions()
   const [open, setOpen] = useState(false)
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
 
@@ -203,7 +179,6 @@ export function Sidebar() {
     pathname,
     selectedCompany,
     navItems,
-    canCreateDeliveryChallan: can("delivery_challans", "create"),
     onLogoutClick: () => setLogoutDialogOpen(true),
   }
 

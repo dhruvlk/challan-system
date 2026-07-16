@@ -32,7 +32,8 @@ export const ROUTES = {
   CHALLANS: '/challans',
   DELIVERY_CHALLANS: '/delivery-challans',
   REPORTS: '/reports',
-  SETTINGS: '/settings'
+  /** Disabled while FEATURES.companySettingsModule is false */
+  SETTINGS: '/settings',
 }
 
 export const STATUS = {
