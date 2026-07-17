@@ -14,6 +14,8 @@ import { Challan, Company } from "@/types"
 import { ChallanPDF } from "@/components/pdf/ChallanPDF"
 import { buildPdfFilename } from "@/lib/pdf-utils"
 import { downloadPdfBlob, previewPdfBlob, sharePdfBlob } from "@/lib/pdf-actions"
+import { getChallanById } from "@/services/challans.service"
+import { getCompanyById } from "@/services/companies.service"
 
 interface DownloadButtonProps {
   challan: Challan
@@ -32,35 +34,47 @@ export function DownloadChallanButton({
 }: DownloadButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const generate = async () => {
+  const generateInvoicePDF = async (invoiceId: string, companyId: string) => {
+    const [fullChallan, fullCompany] = await Promise.all([
+      getChallanById(invoiceId),
+      getCompanyById(companyId)
+    ])
+
+    if (!fullChallan) throw new Error("Invoice not found")
+    if (!fullCompany) throw new Error("Company not found")
+
     const { pdf } = await import("@react-pdf/renderer")
-    return pdf(
+    const blob = await pdf(
       <ChallanPDF
-        challan={challan}
-        company={company}
-        party={challan.customer ?? challan.party}
+        challan={fullChallan}
+        company={fullCompany}
+        party={fullChallan.customer ?? fullChallan.party}
       />
     ).toBlob()
-  }
 
-  const filename = buildPdfFilename(
-    "Invoice",
-    challan.challan_number,
-    challan.customer?.name ?? challan.party?.name
-  )
+    return { blob, fullChallan }
+  }
 
   const run = async (action: "download" | "preview" | "share", e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (isGenerating) return
     try {
       setIsGenerating(true)
-      toast.info("Generating PDF...", { id: "pdf-gen" })
-      const blob = await generate()
+      toast.info("Loading Invoice...", { id: "pdf-gen" })
+      
+      const { blob, fullChallan } = await generateInvoicePDF(challan.id, company.id)
+      
+      const filename = buildPdfFilename(
+        "Invoice",
+        fullChallan.challan_number,
+        fullChallan.customer?.name ?? fullChallan.party?.name
+      )
+
       if (action === "preview") {
         await previewPdfBlob(blob)
         toast.success("PDF opened.", { id: "pdf-gen" })
       } else if (action === "share") {
-        const shared = await sharePdfBlob(blob, filename, `Invoice ${challan.challan_number}`)
+        const shared = await sharePdfBlob(blob, filename, `Invoice ${fullChallan.challan_number}`)
         toast.success(shared ? "PDF shared." : "PDF downloaded.", { id: "pdf-gen" })
       } else {
         await downloadPdfBlob(blob, filename)
@@ -68,7 +82,7 @@ export function DownloadChallanButton({
       }
     } catch (error) {
       console.error("Error generating PDF:", error)
-      toast.error("Failed to generate PDF. Please try again.", { id: "pdf-gen" })
+      toast.error("Unable to generate Invoice PDF. Please try again.", { id: "pdf-gen" })
     } finally {
       setIsGenerating(false)
     }
