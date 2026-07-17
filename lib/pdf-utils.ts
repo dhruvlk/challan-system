@@ -64,12 +64,11 @@ export function getBankDetailRows(company: Company): BankDetailRow[] {
 }
 
 export function resolveInvoiceTerms(company: Company): string[] {
-  return parseTerms(company.invoice_terms || company.terms_conditions);
+  return parseTerms(company.terms_conditions);
 }
 
 export function resolveDeliveryChallanTerms(company: Company): string[] {
-  const fromCompany = parseTerms(company.delivery_challan_terms);
-  return fromCompany;
+  return parseTerms(company.terms_conditions);
 }
 
 /** @deprecated Use getBankDetailRows for aligned PDF layout */
@@ -84,9 +83,10 @@ export function parseTerms(terms?: string | null): string[] {
 
   const chunks = terms
     .split(/\n|•/)
-    .flatMap((chunk) => chunk.split(/(?<=\.)\s+(?=[a-z])/i))
+    .flatMap((chunk) => chunk.split(/(?<=(?<!a\/c)\.)\s+(?=[a-z])/i))
     .map((line) => line.replace(/^[-•*\d.)\s]+/, '').trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((line) => line.charAt(0).toUpperCase() + line.slice(1));
 
   return chunks;
 }

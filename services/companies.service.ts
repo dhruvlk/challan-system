@@ -89,7 +89,9 @@ export async function updateCompany(company: Company): Promise<Company> {
     delivery_challan_start_number: rest.delivery_challan_start_number ?? 1,
     number_fy_format: rest.number_fy_format ?? 'YYYY',
     default_gst_type: rest.default_gst_type ?? 'cgst_sgst',
-    terms_conditions: rest.invoice_terms ?? rest.terms_conditions ?? null,
+    terms_conditions: rest.terms_conditions ?? null,
+    invoice_terms: null,
+    delivery_challan_terms: null,
   };
   const { data, error } = await supabase()
     .from('companies')
