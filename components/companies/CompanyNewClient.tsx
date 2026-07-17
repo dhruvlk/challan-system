@@ -81,9 +81,9 @@ export default function CompanyNewClient() {
       setCompanies([finalCompany, ...companies])
       setSelectedCompany(finalCompany)
       router.push("/companies")
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create company:", error)
-      toast.error(error?.message || "Failed to create company")
+      toast.error(error instanceof Error ? error.message : "Failed to create company")
     } finally {
       setIsLoading(false)
     }
