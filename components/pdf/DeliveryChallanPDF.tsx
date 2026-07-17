@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: '#000000',
     textAlign: 'center',
-    paddingTop: 4,
-    paddingBottom: 2,
+    paddingTop: 3,
+    paddingBottom: 3,
     borderRightWidth: 1,
     borderRightColor: BORDER_COLOR,
   },
@@ -265,13 +265,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#F7F0E6',
   },
+  totalLeftSpan: {
+    width: '50%',
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: '#000000',
+    textAlign: 'center',
+    paddingTop: 3,
+    paddingBottom: 3,
+    borderRightWidth: 1,
+    borderRightColor: BORDER_COLOR,
+  },
   totalTd: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: '#000000',
     textAlign: 'center',
-    paddingTop: 4,
-    paddingBottom: 2,
+    paddingTop: 3,
+    paddingBottom: 3,
     borderRightWidth: 1,
     borderRightColor: BORDER_COLOR,
   },
@@ -487,8 +498,7 @@ function ItemTable({
       ))}
 
       <View style={styles.totalRow} wrap={false}>
-        <Text style={[styles.totalTd, styles.colSno]}>Total</Text>
-        <Text style={[styles.totalTd, styles.colTaka]}>{' '}</Text>
+        <Text style={styles.totalLeftSpan}>Total</Text>
         <Text style={[styles.totalTd, styles.colMts]}>{totalMeters > 0 ? totalMeters.toFixed(2) : ' '}</Text>
         <Text style={[styles.totalTd, styles.colWt, styles.tdLast]}>{totalWeight > 0 ? totalWeight.toFixed(2) : ' '}</Text>
       </View>
