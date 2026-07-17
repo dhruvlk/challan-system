@@ -80,6 +80,7 @@ export interface Company {
   default_unit?: string | null;
   default_delivered_by?: string | null;
   is_active?: boolean;
+  status?: 'Active' | 'Archived';
   created_at?: string;
   updated_at?: string;
 }

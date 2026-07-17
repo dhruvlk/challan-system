@@ -5,18 +5,25 @@ import { usePermissions } from "@/context/PermissionContext"
 import { PermissionGate } from "@/components/auth/PermissionGate"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Building2, PlusCircle, Pencil } from "lucide-react"
+import { Building2, PlusCircle, Pencil, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/common/PageHeader"
 import { EmptyState } from "@/components/common/EmptyState"
 import { MotionStagger, MotionStaggerItem } from "@/components/common/motion"
 import { CompanyAvatar } from "@/components/companies/CompanyAvatar"
+import { DeleteCompanyDialog } from "@/components/companies/DeleteCompanyDialog"
 import { cn } from "@/lib/utils"
+import { useState } from "react"
+import { useAuth } from "@/hooks/useAuth"
+import type { Company } from "@/types"
 
 export default function CompaniesClient() {
   const { companies, selectedCompany, setSelectedCompany } = useCompany()
   const { can } = usePermissions()
+  const { user } = useAuth()
   const router = useRouter()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null)
 
   return (
     <div className="space-y-6">
@@ -76,18 +83,34 @@ export default function CompaniesClient() {
                       </CardDescription>
                     </div>
                   </div>
-                  <PermissionGate module="companies" action="edit">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        router.push(`/companies/${company.id}/edit`)
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </PermissionGate>
+                  <div className="flex items-center gap-1">
+                    <PermissionGate module="companies" action="edit">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/companies/${company.id}/edit`)
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </PermissionGate>
+                    {company.user_id === user?.id && (
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCompanyToDelete(company)
+                          setDeleteDialogOpen(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm text-muted-foreground">
                   <p className="line-clamp-1">{company.email || "No email"}</p>
@@ -99,6 +122,13 @@ export default function CompaniesClient() {
           ))}
         </MotionStagger>
       )}
+
+      <DeleteCompanyDialog
+        company={companyToDelete}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onSuccess={() => setDeleteDialogOpen(false)}
+      />
     </div>
   )
 }
