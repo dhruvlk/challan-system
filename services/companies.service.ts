@@ -25,6 +25,8 @@ export async function getCompanies(): Promise<Company[]> {
     .from('companies')
     .select('*')
     .in('id', companyIds)
+    // @ts-expect-error status is not yet in generated types
+    .eq('status', 'Active')
     .order('name');
 
   if (error) throw error;
@@ -95,6 +97,7 @@ export async function updateCompany(company: Company): Promise<Company> {
   };
   const { data, error } = await supabase()
     .from('companies')
+    // @ts-expect-error status is not yet in generated types
     .update(payload)
     .eq('id', id)
     .select()
@@ -102,6 +105,19 @@ export async function updateCompany(company: Company): Promise<Company> {
 
   if (error) throw error;
   return mapCompany(data);
+}
+
+export async function checkCompanyData(id: string): Promise<boolean> {
+  // @ts-expect-error RPC not yet in generated types
+  const { data, error } = await supabase().rpc('check_company_has_data', { p_company_id: id });
+  if (error) throw error;
+  return Boolean(data);
+}
+
+export async function archiveCompany(id: string): Promise<void> {
+  // @ts-expect-error status not yet in generated types
+  const { error } = await supabase().from('companies').update({ status: 'Archived' }).eq('id', id);
+  if (error) throw error;
 }
 
 export async function deleteCompany(id: string): Promise<void> {
