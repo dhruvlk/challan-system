@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, Svg, Path, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Svg, Path, Line, Polygon, Circle } from '@react-pdf/renderer';
 import type { Company, Customer, DeliveryChallan } from '@/types';
 import { formatCompanyAddress, resolveDeliveryChallanTerms } from '@/lib/pdf-utils';
 
@@ -11,14 +11,32 @@ Font.register({
   ],
 });
 
-const PAGE_BG = '#FFFFFF';
-const HEADER_BG = '#F9E6BE';
-const ORANGE = '#F4B14A';
-const RED = '#E53935';
-const BLACK = '#000000';
-const FOOTER_BG = '#F9E6BE';
-const GREY_BG = '#E5E5E5';
-const NAVY_BLUE = '#1e2b4d';
+const PRIMARY_COLOR = '#091A42'; // Dark Blue
+const SECONDARY_COLOR = '#DCA86A'; // Gold/Beige
+const BORDER_COLOR = '#EFE3D3'; // Light beige for borders and bg
+const TEXT_COLOR = '#000000';
+
+const PhoneIcon = () => (
+  <Svg viewBox="0 0 24 24" width="12" height="12">
+    <Path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" fill={PRIMARY_COLOR} />
+  </Svg>
+);
+
+const PinIcon = () => (
+  <Svg viewBox="0 0 24 24" width="10" height="10">
+    <Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill={PRIMARY_COLOR} />
+  </Svg>
+);
+
+const FancyDivider = () => (
+  <Svg viewBox="0 0 300 10" width="300" height="10">
+    <Line x1="0" y1="5" x2="134" y2="5" stroke={SECONDARY_COLOR} strokeWidth="1" />
+    <Polygon points="138,5 142,2 146,5 142,8" fill={SECONDARY_COLOR} />
+    <Circle cx="150" cy="5" r="2.5" fill={SECONDARY_COLOR} />
+    <Polygon points="154,5 158,2 162,5 158,8" fill={SECONDARY_COLOR} />
+    <Line x1="166" y1="5" x2="300" y2="5" stroke={SECONDARY_COLOR} strokeWidth="1" />
+  </Svg>
+);
 
 const ROWS_PER_SIDE = 24;
 
@@ -26,93 +44,133 @@ const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
     fontSize: 10,
-    backgroundColor: PAGE_BG,
-    padding: 0,
+    backgroundColor: '#FFFFFF',
+    padding: 10,
     flexDirection: 'column',
     flex: 1,
   },
+  pageBorder: {
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    borderRadius: 8,
+    flex: 1,
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  badgeShadow: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    backgroundColor: SECONDARY_COLOR,
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderBottomRightRadius: 30,
+    borderTopLeftRadius: 8,
+  },
+  badge: {
+    position: 'absolute',
+    top: -1,
+    left: -1,
+    backgroundColor: PRIMARY_COLOR,
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderBottomRightRadius: 30,
+    borderTopLeftRadius: 8,
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 12,
+  },
   header: {
-    backgroundColor: HEADER_BG,
-    paddingTop: 5,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingHorizontal: 15,
+    paddingBottom: 5,
   },
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'flex-start',
   },
-  titleLeft: {
-    width: '30%',
-    color: RED,
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 14,
-    letterSpacing: 0.5,
-  },
   religiousWrap: {
-    width: '40%',
+    position: 'absolute',
+    left: 0,
+    right: 0,
     alignItems: 'center',
+    top: 5,
+    zIndex: 1,
   },
   religiousText: {
-    color: RED,
+    color: '#D3362E',
     fontFamily: 'Gujarati',
     fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 2,
   },
   phonesWrap: {
-    width: '30%',
     alignItems: 'flex-end',
+    marginTop: 5,
+    zIndex: 5,
   },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 3,
   },
   phoneText: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 11,
-    color: BLACK,
+    color: PRIMARY_COLOR,
+    marginLeft: 4,
   },
   companyWrap: {
     alignItems: 'center',
-    marginTop: 5,
+    marginTop: 25,
   },
   companyName: {
-    fontSize: 35,
+    fontSize: 42,
     textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#4A4036',
-    fontFamily: 'Times-Roman',
+    fontFamily: 'Times-Bold',
+    color: PRIMARY_COLOR,
+    marginBottom: 5,
   },
   tagline: {
     fontFamily: 'Helvetica',
-    fontSize: 13,
-    marginTop: 2,
-    color: BLACK,
+    fontSize: 12,
+    marginTop: 5,
+    color: PRIMARY_COLOR,
+  },
+  headerDividerWrapper: {
+    alignItems: 'center',
+    marginTop: 15,
+    marginBottom: 10,
   },
   gstin: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 11,
-    marginTop: 4,
-    color: BLACK,
+    color: SECONDARY_COLOR,
+    textAlign: 'center',
+    letterSpacing: 1,
+    marginBottom: 5,
   },
   addressBar: {
-    backgroundColor: ORANGE,
+    backgroundColor: BORDER_COLOR,
     paddingVertical: 6,
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   addressText: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 11,
-    color: BLACK,
+    fontFamily: 'Helvetica',
+    fontSize: 10,
+    color: '#333',
+    marginLeft: 6,
   },
   metaSection: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 6,
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    paddingBottom: 10,
     justifyContent: 'space-between',
   },
   metaCol: {
@@ -121,17 +179,30 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 7,
+    marginBottom: 10,
   },
   fieldLabel: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Helvetica-Bold',
     fontSize: 11,
+    color: PRIMARY_COLOR,
+    width: 60,
+  },
+  fieldLabelRight: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    color: PRIMARY_COLOR,
+    width: 70,
+  },
+  colon: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    color: PRIMARY_COLOR,
     marginRight: 6,
   },
   fieldLine: {
     flex: 1,
     borderBottomWidth: 1,
-    borderBottomColor: BLACK,
+    borderBottomColor: '#A0A0A0',
     minHeight: 14,
     justifyContent: 'flex-end',
     paddingBottom: 1,
@@ -139,143 +210,139 @@ const styles = StyleSheet.create({
   fieldLineText: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
+    color: PRIMARY_COLOR,
     paddingLeft: 4,
   },
   tablesWrap: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     justifyContent: 'space-between',
+    marginBottom: 5,
   },
   table: {
     width: '49%',
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    flexDirection: 'column',
+    display: 'flex',
   },
   tr: {
     flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_COLOR,
   },
   th: {
-    backgroundColor: GREY_BG,
+    backgroundColor: PRIMARY_COLOR,
+    color: '#FFFFFF',
     fontFamily: 'Helvetica-Bold',
     fontSize: 10,
     textAlign: 'center',
     paddingVertical: 5,
-    borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderColor: BLACK,
+    borderRightColor: '#FFFFFF',
+  },
+  thLast: {
+    borderRightWidth: 0,
   },
   td: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica-Bold',
+    color: '#000000',
     textAlign: 'center',
-    paddingTop: 2,
+    paddingTop: 4,
     paddingBottom: 2,
-    borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderColor: BLACK,
-    height: 16,
+    borderRightColor: BORDER_COLOR,
+  },
+  tdLast: {
+    borderRightWidth: 0,
   },
   colSno: { width: '15%' },
-  colTaka: { width: '33%' },
-  colMts: { width: '26%' },
-  colWt: { width: '26%' },
-  totalLeftCell: {
-    width: '48%',
-    backgroundColor: GREY_BG,
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 10,
-    paddingLeft: 6,
-    paddingTop: 2,
-    paddingBottom: 2,
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderColor: BLACK,
-    textAlign: 'left',
-    height: 16,
+  colTaka: { width: '35%' },
+  colMts: { width: '25%' },
+  colWt: { width: '25%' },
+  totalRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F7F0E6',
   },
-  totalCell: {
-    width: '26%',
-    backgroundColor: GREY_BG,
-    fontFamily: 'Helvetica-Bold',
+  totalTd: {
     fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: '#000000',
     textAlign: 'center',
-    paddingTop: 2,
+    paddingTop: 4,
     paddingBottom: 2,
-    borderBottomWidth: 1,
     borderRightWidth: 1,
-    borderColor: BLACK,
-    height: 16,
+    borderRightColor: BORDER_COLOR,
   },
   summaryBar: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginTop: 5,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: BLACK,
-    backgroundColor: GREY_BG,
+    marginHorizontal: 15,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
   },
   summaryCell: {
     flex: 1,
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRightWidth: 1,
-    borderColor: BLACK,
+    borderRightColor: BORDER_COLOR,
     justifyContent: 'center',
+  },
+  summaryCellLast: {
+    borderRightWidth: 0,
   },
   summaryText: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 10,
+    color: PRIMARY_COLOR,
   },
   footer: {
-    backgroundColor: FOOTER_BG,
-    marginTop: 6,
-    paddingTop: 8,
-    paddingBottom: 7,
-    paddingHorizontal: 20,
-  },
-  footerTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 0,
-    marginTop: 0,
+    marginTop: 8,
+    paddingHorizontal: 15,
+    paddingBottom: 15,
   },
   footerAck: {
     fontFamily: 'Helvetica-Bold',
-    fontSize: 10.5,
-    color: NAVY_BLUE,
+    fontSize: 10,
+    color: PRIMARY_COLOR,
+    marginBottom: 4,
   },
-  footerCompany: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 12,
-    color: RED,
-    width: '28%',
-    textAlign: 'center',
+  footerMiddleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  termsCol: {
+    width: '65%',
+  },
+  companyNameCol: {
+    width: '30%',
+    alignItems: 'center',
+    paddingTop: 2,
   },
   termItemWrap: {
     flexDirection: 'row',
     marginBottom: 2,
-    width: '65%',
   },
   termBullet: {
-    width: 12,
-    fontSize: 9.5,
-    color: BLACK,
+    width: 10,
+    fontSize: 8,
+    color: PRIMARY_COLOR,
   },
   termText: {
     flex: 1,
     fontFamily: 'Helvetica',
-    fontSize: 9,
-    lineHeight: 1.3,
-    color: BLACK,
+    fontSize: 8,
+    lineHeight: 1.2,
+    color: PRIMARY_COLOR,
   },
   footerBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 6,
+    alignItems: 'flex-end',
+    marginTop: 15,
   },
   buyerSignWrap: {
     flexDirection: 'row',
@@ -284,49 +351,44 @@ const styles = StyleSheet.create({
   },
   buyerSignText: {
     fontFamily: 'Helvetica-Bold',
-    fontSize: 11,
+    fontSize: 10,
+    color: PRIMARY_COLOR,
     marginRight: 4,
-    color: NAVY_BLUE,
   },
   buyerSignLine: {
     flex: 1,
-    borderBottomWidth: 0.75,
-    borderBottomColor: BLACK,
-    marginBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: '#A0A0A0',
   },
   guaranteeText: {
-    fontFamily: 'Times-Roman',
+    fontFamily: 'Helvetica-Bold',
     fontSize: 11,
-    width: '36%',
+    color: SECONDARY_COLOR,
     textAlign: 'center',
-    color: BLACK,
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    width: '100%',
   },
-  signatureWrap: {
-    width: '28%',
+  signatureLineWrap: {
+    width: '30%',
     alignItems: 'center',
+  },
+  forCompanyText: {
+    fontFamily: 'Helvetica-BoldOblique',
+    fontSize: 10,
+    color: PRIMARY_COLOR,
+    textAlign: 'center',
   },
   signatureLine: {
     width: '100%',
     borderBottomWidth: 1,
-    borderBottomColor: BLACK,
+    borderBottomColor: PRIMARY_COLOR,
     marginBottom: 4,
   },
   signatureText: {
     fontFamily: 'Helvetica-Bold',
-    fontSize: 12,
-    color: BLACK,
+    fontSize: 10,
+    color: PRIMARY_COLOR,
   },
 });
-
-function PhoneIcon() {
-  return (
-    <Svg viewBox="0 0 24 24" width="12" height="12" style={{ marginRight: 4 }}>
-      <Path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5C20.55,15.5 21,15.95 21,16.5V20C21,20.55 20.55,21 20,21C10.61,21 3,13.39 3,4C3,3.45 3.45,3 4,3H7.5C8.05,3 8.5,3.45 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z" fill={BLACK} />
-    </Svg>
-  );
-}
 
 function formatPhones(phone?: string | null): string[] {
   if (!phone?.trim()) return [];
@@ -347,7 +409,6 @@ type PdfItem = {
   weight: number;
 };
 
-/** Normalize DB/form item rows so PDF cells always receive real values. */
 function normalizePdfItems(
   items: DeliveryChallan['items'] | undefined | null
 ): PdfItem[] {
@@ -407,7 +468,7 @@ function ItemTable({
         <Text style={[styles.th, styles.colSno]}>S.No.</Text>
         <Text style={[styles.th, styles.colTaka]}>Taka No.</Text>
         <Text style={[styles.th, styles.colMts]}>MTS.</Text>
-        <Text style={[styles.th, { width: '26%' }]}>Wt.</Text>
+        <Text style={[styles.th, styles.colWt, styles.thLast]}>Wt.</Text>
       </View>
 
       {rows.map((item, i) => (
@@ -419,16 +480,17 @@ function ItemTable({
           <Text style={[styles.td, styles.colMts]}>
             {formatCellNumber(item?.meters, !!item)}
           </Text>
-          <Text style={[styles.td, { width: '26%' }]}>
+          <Text style={[styles.td, styles.colWt, styles.tdLast]}>
             {formatCellNumber(item?.weight, !!item)}
           </Text>
         </View>
       ))}
 
-      <View style={styles.tr} wrap={false}>
-        <Text style={styles.totalLeftCell}>Total</Text>
-        <Text style={styles.totalCell}>{totalMeters.toFixed(2)}</Text>
-        <Text style={styles.totalCell}>{totalWeight.toFixed(2)}</Text>
+      <View style={styles.totalRow} wrap={false}>
+        <Text style={[styles.totalTd, styles.colSno]}>Total</Text>
+        <Text style={[styles.totalTd, styles.colTaka]}>{' '}</Text>
+        <Text style={[styles.totalTd, styles.colMts]}>{totalMeters > 0 ? totalMeters.toFixed(2) : ' '}</Text>
+        <Text style={[styles.totalTd, styles.colWt, styles.tdLast]}>{totalWeight > 0 ? totalWeight.toFixed(2) : ' '}</Text>
       </View>
     </View>
   );
@@ -441,8 +503,8 @@ interface DeliveryChallanPDFProps {
 }
 
 const DEFAULT_TERMS = [
-  'No. claim or Dispute arising from change in quality or shortage in meter or\nany causes whatsoever will not be entertained once the goods are delivered.',
-  '2% interest P.M. wil be charged if payment is not made within due date.',
+  'No. claim or Dispute arising from change in quality or shortage in meter or any causes whatsoever will not be entertained once the goods are delivered.',
+  '2% interest P.M. will be charged if payment is not made within due date.',
   'The goods are despatches at your risk.',
   'Subject to SURAT jurisdiction',
 ];
@@ -454,10 +516,8 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
   const items = normalizePdfItems(challan.items);
 
   const computedMeters = items.reduce((sum, item) => sum + item.meters, 0);
-  const computedWeight = items.reduce((sum, item) => sum + item.weight, 0);
   const totalPieces = items.length > 0 ? items.length : Number(challan.total_pieces) || 0;
   const totalMeters = items.length > 0 ? computedMeters : Number(challan.total_meters) || 0;
-  const totalWeight = items.length > 0 ? computedWeight : Number(challan.total_weight) || 0;
 
   const phones = formatPhones(company.phone);
   const companyAddress = formatCompanyAddress(company) || company.address || '';
@@ -465,8 +525,6 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
     .filter(Boolean)
     .join(', ');
   const [addrLine1, addrLine2] = splitAddressLines(customerAddress);
-  const customTerms = resolveDeliveryChallanTerms(company);
-  const displayTerms = customTerms.length > 0 ? customTerms : DEFAULT_TERMS;
 
   const pages = chunkItems(items, PAGE_CAPACITY);
 
@@ -487,14 +545,19 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
 
         return (
           <Page key={pageIndex} size="A4" style={styles.page}>
-            <View>
+            <View style={styles.pageBorder} wrap={false}>
+              <View style={styles.badgeShadow}>
+                <Text style={[styles.badgeText, { color: 'transparent' }]}>DELIVERY CHALLAN</Text>
+              </View>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>DELIVERY CHALLAN</Text>
+              </View>
+
               {/* HEADER */}
               <View style={styles.header}>
                 <View style={styles.topRow}>
-                  <Text style={styles.titleLeft}>DELIVERY CHALLAN</Text>
                   <View style={styles.religiousWrap}>
-                    <Text style={styles.religiousText}>|| શ્રી ૧ ||</Text>
-                    <Text style={styles.religiousText}>|| શ્રી ગણેશાય નમ: ||</Text>
+                    <Text style={styles.religiousText}>|| શ્રી ગણેશાય નમઃ ||</Text>
                   </View>
                   <View style={styles.phonesWrap}>
                     {phones.map((phone, i) => (
@@ -507,16 +570,22 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                 </View>
 
                 <View style={styles.companyWrap}>
-                  <Text style={styles.companyName}>{(company.name || '').toUpperCase()}</Text>
-                  <Text style={styles.tagline}>{company.tagline || ''}</Text>
-                  <Text style={styles.gstin}>
-                    {company.gst_number ? `GSTIN: ${company.gst_number}` : ''}
-                  </Text>
+                  <Text style={styles.companyName}>{company.name || ''}</Text>
+                  <Text style={styles.tagline}>{(company.tagline || '').toUpperCase()}</Text>
                 </View>
+
+                <View style={styles.headerDividerWrapper}>
+                  <FancyDivider />
+                </View>
+
+                <Text style={styles.gstin}>
+                  {company.gst_number ? `GSTIN: ${company.gst_number}` : ''}
+                </Text>
               </View>
 
               {/* ADDRESS BAR */}
               <View style={styles.addressBar}>
+                <PinIcon />
                 <Text style={styles.addressText}>{companyAddress}</Text>
               </View>
 
@@ -524,25 +593,29 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
               <View style={styles.metaSection}>
                 <View style={styles.metaCol}>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Name :</Text>
+                    <Text style={styles.fieldLabel}>Name</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{customer?.name || ''}</Text>
                     </View>
                   </View>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Address :</Text>
+                    <Text style={styles.fieldLabel}>Address</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{addrLine1}</Text>
                     </View>
                   </View>
                   <View style={styles.fieldRow}>
-                    <Text style={[styles.fieldLabel, { color: 'transparent' }]}>Address :</Text>
+                    <Text style={[styles.fieldLabel, { color: 'transparent' }]}>Address</Text>
+                    <Text style={[styles.colon, { color: 'transparent' }]}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{addrLine2}</Text>
                     </View>
                   </View>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Gst no. :</Text>
+                    <Text style={styles.fieldLabel}>Gst no.</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{customer?.gst_number || ''}</Text>
                     </View>
@@ -551,7 +624,8 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
 
                 <View style={styles.metaCol}>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Date :</Text>
+                    <Text style={styles.fieldLabelRight}>Date</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>
                         {challan.date ? new Date(challan.date).toLocaleDateString('en-GB') : ''}
@@ -559,19 +633,22 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                     </View>
                   </View>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Challan No :</Text>
+                    <Text style={styles.fieldLabelRight}>Challan No.</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{challan.challan_number || ''}</Text>
                     </View>
                   </View>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Quality :</Text>
+                    <Text style={styles.fieldLabelRight}>Quality</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{challan.quality || ''}</Text>
                     </View>
                   </View>
                   <View style={styles.fieldRow}>
-                    <Text style={styles.fieldLabel}>Broker :</Text>
+                    <Text style={styles.fieldLabelRight}>Broker</Text>
+                    <Text style={styles.colon}>:</Text>
                     <View style={styles.fieldLine}>
                       <Text style={styles.fieldLineText}>{challan.broker || ''}</Text>
                     </View>
@@ -607,41 +684,53 @@ export function DeliveryChallanPDF({ challan, company, party }: DeliveryChallanP
                     Total MTS. {totalMeters ? totalMeters.toFixed(2) : ''}
                   </Text>
                 </View>
-                <View style={[styles.summaryCell, { alignItems: 'flex-end' }]}>
+                <View style={[styles.summaryCell, styles.summaryCellLast, { alignItems: 'flex-end' }]}>
                   <Text style={styles.summaryText}>
                     {company.hsn_code ? `HSN Code : ${company.hsn_code}` : ''}
                   </Text>
                 </View>
               </View>
-            </View>
 
-            {/* FOOTER */}
-            <View style={styles.footer}>
-              <View style={styles.footerTopRow}>
+              {/* FOOTER */}
+              <View style={styles.footer}>
                 <Text style={styles.footerAck}>
                   RECEIVED THE ABOVE GOODS IN GOOD AND SOUND CONDITION.
                 </Text>
-                <Text style={styles.footerCompany}>
-                  {company.name ? `For, ${company.name}` : ''}
-                </Text>
-              </View>
 
-              {displayTerms.map((term, i) => (
-                <View key={i} style={styles.termItemWrap}>
-                  <Text style={styles.termBullet}>•</Text>
-                  <Text style={styles.termText}>{term}</Text>
+                <View style={styles.footerMiddleRow}>
+                  <View style={styles.termsCol}>
+                    {DEFAULT_TERMS.map((term, i) => (
+                      <View key={i} style={styles.termItemWrap}>
+                        <Text style={styles.termBullet}>•</Text>
+                        <Text style={styles.termText}>{term}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={styles.companyNameCol}>
+                    <Text style={styles.forCompanyText}>
+                      {company.name ? `For, ${company.name}` : ''}
+                    </Text>
+                  </View>
                 </View>
-              ))}
 
-              <View style={styles.footerBottomRow}>
-                <View style={styles.buyerSignWrap}>
-                  <Text style={styles.buyerSignText}>Buyer&apos;s Sign :</Text>
-                  <View style={styles.buyerSignLine} />
-                </View>
-                <Text style={styles.guaranteeText}>NO DYEING GUARANTEE</Text>
-                <View style={styles.signatureWrap}>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureText}>SIGNATURE</Text>
+                <View style={styles.footerBottomRow}>
+                  <View style={styles.buyerSignWrap}>
+                    <Text style={styles.buyerSignText}>Buyer&apos;s Sign :</Text>
+                    <View style={styles.buyerSignLine} />
+                  </View>
+
+                  <View style={{ width: '36%', alignItems: 'center' }}>
+                    <Text style={styles.guaranteeText}>
+                      <Text style={{ color: SECONDARY_COLOR }}>─── </Text>
+                      NO DYEING GUARANTEE
+                      <Text style={{ color: SECONDARY_COLOR }}> ───</Text>
+                    </Text>
+                  </View>
+
+                  <View style={styles.signatureLineWrap}>
+                    <View style={styles.signatureLine} />
+                    <Text style={styles.signatureText}>SIGNATURE</Text>
+                  </View>
                 </View>
               </View>
             </View>
