@@ -36,21 +36,42 @@ export function DeleteCompanyDialog({
   const { selectedCompany, setSelectedCompany, companies, refreshCompanies } = useCompany()
 
   useEffect(() => {
+    let mounted = true
+
     if (open && company) {
-      setHasData(null)
-      setIsChecking(true)
-      checkCompanyData(company.id)
-        .then((result) => setHasData(result))
-        .catch((error) => {
+      const check = async () => {
+        try {
+          const result = await checkCompanyData(company.id)
+          if (mounted) setHasData(result)
+        } catch (error) {
           console.error("Failed to check company data:", error)
-          toast.error("Failed to verify company data")
-          onOpenChange(false)
-        })
-        .finally(() => setIsChecking(false))
+          if (mounted) {
+            toast.error("Failed to verify company data")
+            onOpenChange(false)
+          }
+        } finally {
+          if (mounted) setIsChecking(false)
+        }
+      }
+
+      // Defer state updates to avoid synchronous setState in effect warning
+      setTimeout(() => {
+        if (!mounted) return
+        setHasData(null)
+        setIsChecking(true)
+        void check()
+      }, 0)
     } else {
-      setHasData(null)
-      setIsChecking(false)
-      setIsProcessing(false)
+      setTimeout(() => {
+        if (!mounted) return
+        setHasData(null)
+        setIsChecking(false)
+        setIsProcessing(false)
+      }, 0)
+    }
+
+    return () => {
+      mounted = false
     }
   }, [open, company, onOpenChange])
 
