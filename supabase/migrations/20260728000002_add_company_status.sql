@@ -11,7 +11,7 @@ security definer
 set search_path = public
 as $$
   select exists (
-    select 1 from public.parties where company_id = p_company_id limit 1
+    select 1 from public.customers where company_id = p_company_id limit 1
   ) or exists (
     select 1 from public.challans where company_id = p_company_id limit 1
   ) or exists (
