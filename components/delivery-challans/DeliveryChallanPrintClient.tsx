@@ -54,13 +54,17 @@ export default function DeliveryChallanPrintClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-100 p-4">
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 p-4">
       <div className="mb-4 flex items-center justify-between">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <div className="text-sm text-muted-foreground">
+          <Button 
+            variant="outline" 
+            onClick={() => router.back()}
+            className="dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 dark:hover:bg-gray-700 print:hidden"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4 dark:text-gray-100" />
+            Back
+          </Button>
+        <div className="text-sm text-muted-foreground dark:text-gray-400 print:hidden">
           Note: Use the built-in PDF viewer controls to print or download.
         </div>
       </div>
