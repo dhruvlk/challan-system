@@ -130,19 +130,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Times-Bold',
     color: PRIMARY_COLOR,
     textAlign: 'center',
-    marginTop: 2, // Optimized spacing
+    marginTop: 2,
   },
   companyTagline: {
     fontSize: 15,
     fontFamily: 'Helvetica',
     color: PRIMARY_COLOR,
     textAlign: 'center',
-    marginTop: 1, // Optimized spacing
+    marginTop: 1,
   },
   headerDividerWrapper: {
     alignItems: 'center',
-    marginTop: 5, // Optimized spacing
-    marginBottom: 5, // Optimized spacing
+    marginTop: 5,
+    marginBottom: 5,
   },
   headerDividerLine: {
     width: '40%',
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 15,
-    marginTop: 10, // Optimized spacing
+    marginTop: 10,
   },
   infoCol: {
     width: '45%',
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 4,
     alignSelf: 'flex-start',
-    marginBottom: 8, // Optimized spacing
+    marginBottom: 8,
   },
   badgeText: {
     color: '#FFF',
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   fieldRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 4, // Optimized spacing
+    marginBottom: 4,
   },
   fieldLabel: {
     width: 65,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
 
   // TABLE
   tableContainer: {
-    marginTop: 10, // Optimized spacing
+    marginTop: 10,
     marginHorizontal: 15,
     borderWidth: 1,
     borderColor: '#A0A0A0',
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
 
   // FOOTER (Bank, Signature, Terms)
   footerSection: {
-    marginTop: 10, // Optimized spacing
+    marginTop: 10,
   },
   bankSignRow: {
     flexDirection: 'row',
@@ -399,12 +399,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
   },
   preparedBox: {
-    marginTop: 10, // Optimized spacing
+    marginTop: 10,
   },
   preparedRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 4, // Optimized spacing
+    marginBottom: 4,
   },
   preparedLabel: {
     width: 65,
@@ -445,14 +445,14 @@ const styles = StyleSheet.create({
   },
 
   termsBox: {
-    marginTop: 8, // Optimized spacing
+    marginTop: 8,
     paddingHorizontal: 15,
-    marginBottom: 5, // Optimized spacing
+    marginBottom: 5,
   },
   termsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4, // Optimized spacing
+    marginBottom: 4,
   },
   termsTitle: {
     fontSize: 10,
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   },
   termLine: {
     flexDirection: 'row',
-    marginBottom: 2, // Optimized spacing
+    marginBottom: 2,
   },
   termBullet: {
     fontSize: 8,
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 5, // Optimized spacing
+    marginBottom: 5,
   },
   thankYouLine: {
     width: 40,
