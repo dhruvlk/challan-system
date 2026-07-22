@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/common/EmptyState"
 import { MotionStagger, MotionStaggerItem } from "@/components/common/motion"
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts"
 import Link from "next/link"
-
+import { motion } from "framer-motion"
 const listIconColors = [
   "bg-violet-500/10 text-violet-600",
   "bg-sky-500/10 text-sky-600",
@@ -32,7 +32,10 @@ export default function DashboardClient() {
   const [isLoading, setIsLoading] = useState(true)
   const companyId = selectedCompany?.id
 
-  const firstName = user?.name?.split(" ")[0] || "there"
+  const firstName = user?.name?.split(" ")[0] || "Admin"
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
+  const currentDate = format(new Date(), "EEEE, MMMM d, yyyy")
 
   useEffect(() => {
     let cancelled = false
@@ -90,21 +93,31 @@ export default function DashboardClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between mb-2"
+      >
+        <div className="space-y-1.5">
           <p className="text-sm font-medium text-primary">Dashboard</p>
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-            Good to see you, {firstName}
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl lg:text-4xl">
+            {greeting}, {firstName} <span className="inline-block origin-bottom-right hover:animate-bounce cursor-default">👋</span>
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Overview for {selectedCompany.name}
+          <p className="text-base text-muted-foreground md:text-lg">
+            Here&apos;s what&apos;s happening with{" "}
+            <span className="font-semibold text-primary">{selectedCompany.name}</span>{" "}
+            today.
+          </p>
+          <p className="text-lg font-semibold text-muted-foreground/60">
+            {currentDate}
           </p>
         </div>
-        <Button onClick={() => router.push("/challans/new")}>
+        <Button size="lg" className="w-full sm:w-auto shadow-sm" onClick={() => router.push("/challans/new")}>
           <FileText className="mr-2 h-4 w-4" />
           New invoice
         </Button>
-      </div>
+      </motion.div>
 
       <MotionStagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MotionStaggerItem>
