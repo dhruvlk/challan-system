@@ -102,7 +102,7 @@ export default function DashboardClient() {
         <div className="space-y-1.5">
           <p className="text-sm font-medium text-primary">Dashboard</p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl lg:text-4xl">
-            {greeting}, {firstName} <span className="inline-block origin-bottom-right hover:animate-bounce cursor-default">👋</span>
+            {greeting}, {firstName} <span className="inline-block origin-[80%_85%] animate-wave cursor-default">👋</span>
           </h1>
           <p className="text-base text-muted-foreground md:text-lg">
             Here&apos;s what&apos;s happening with{" "}
