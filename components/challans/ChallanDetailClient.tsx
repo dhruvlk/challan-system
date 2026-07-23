@@ -188,7 +188,7 @@ export default function ChallanDetailClient({ id }: { id: string }) {
         title="Invoice not found"
         description="This invoice may have been deleted or you don't have access."
         action={
-          <Button variant="outline" onClick={() => router.push("/challans")}>
+          <Button variant="outline" onClick={() => router.push("/invoices")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Invoice
           </Button>
@@ -216,16 +216,16 @@ export default function ChallanDetailClient({ id }: { id: string }) {
         description={`${challan.customer?.name ?? "Customer"} · ${format(new Date(challan.date), "dd MMM yyyy")}`}
         action={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => router.push("/challans")}>
+            <Button variant="outline" onClick={() => router.push("/invoices")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button variant="outline" onClick={() => router.push(`/challans/${id}/print`)}>
+            <Button variant="outline" onClick={() => router.push(`/invoices/${id}/print`)}>
               <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>
             <DownloadChallanButton challan={challan} company={selectedCompany} />
-            <Button variant="outline" onClick={() => router.push(`/challans/${id}/edit`)}>
+            <Button variant="outline" onClick={() => router.push(`/invoices/${id}/edit`)}>
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>

@@ -123,7 +123,7 @@ export const ROUTE_MODULE_MAP: { prefix: string; module: PermissionModule }[] = 
   { prefix: '/products', module: 'products' },
   { prefix: '/stock', module: 'stock' },
   { prefix: '/delivery-challans', module: 'delivery_challans' },
-  { prefix: '/challans', module: 'invoices' },
+  { prefix: '/invoices', module: 'invoices' },
   { prefix: '/reports', module: 'reports' },
   { prefix: '/settings', module: 'settings' },
   { prefix: '/notifications', module: 'dashboard' },

@@ -43,7 +43,7 @@ const navigation: {
   { name: "Products", href: "/products", icon: Package, feature: "productsModule", module: "products" },
   { name: "Stock", href: "/stock", icon: Warehouse, module: "stock" },
   { name: "Delivery Challans", href: "/delivery-challans", icon: Truck, module: "delivery_challans" },
-  { name: "Invoice", href: "/challans", icon: FileText, module: "invoices" },
+  { name: "Invoice", href: "/invoices", icon: FileText, module: "invoices" },
   { name: "Reports", href: "/reports", icon: PieChart, module: "reports" },
   { name: "Employees", href: "/employees", icon: UsersRound, module: "employees" },
   {

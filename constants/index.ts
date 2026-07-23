@@ -29,7 +29,7 @@ export const ROUTES = {
   PARTIES: '/parties',
   /** Disabled while FEATURES.productsModule is false */
   PRODUCTS: '/products',
-  CHALLANS: '/challans',
+  CHALLANS: '/invoices',
   DELIVERY_CHALLANS: '/delivery-challans',
   REPORTS: '/reports',
   /** Disabled while FEATURES.companySettingsModule is false */

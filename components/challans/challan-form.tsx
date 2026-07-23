@@ -230,7 +230,7 @@ export function ChallanForm({ initialData }: { initialData?: Challan }) {
         toast.success("Invoice created successfully!")
       }
       
-      router.push("/challans")
+      router.push("/invoices")
       router.refresh()
     } catch (error) {
       toast.error("An error occurred while saving the invoice.")
