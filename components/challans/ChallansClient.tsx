@@ -271,8 +271,8 @@ export default function ChallansClient() {
       />
 
       <Card>
-        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">
-          <div className="space-y-1.5 xl:col-span-2">
+        <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          <div className="space-y-1.5">
             <Label htmlFor="challan-filter-search" className="text-xs font-medium text-muted-foreground">
               Search Invoice No.
             </Label>

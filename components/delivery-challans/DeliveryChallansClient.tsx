@@ -277,7 +277,7 @@ export default function DeliveryChallansClient() {
 
       <Card>
         <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
             <div className="space-y-1.5">
               <Label htmlFor="dc-filter-search" className="text-xs font-medium text-muted-foreground">
                 Search
