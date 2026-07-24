@@ -171,6 +171,12 @@
 
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  *::-webkit-scrollbar {
+    display: none;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -178,8 +184,6 @@
   }
   html {
     @apply font-sans scroll-smooth;
-    /* Reserve scrollbar space so content width never jumps */
-    scrollbar-gutter: stable;
   }
   h1, h2, h3, h4 {
     @apply tracking-tight text-foreground;
@@ -229,9 +233,7 @@
   }
 
   .scrollbar-stable {
-    /* Always reserve the vertical scrollbar track width */
-    overflow-y: scroll;
-    scrollbar-gutter: stable;
+    overflow-y: auto;
   }
 
   @keyframes wave {
