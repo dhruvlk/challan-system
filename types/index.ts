@@ -360,3 +360,21 @@ export function getStockStatus(
   return 'Available';
 }
 
+export interface LetterPad {
+  id: string;
+  company_id: string;
+  title: string;
+  letter_date: string;
+  subject?: string | null;
+  content: string;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface LetterPadFilters {
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  sort?: TableSort;
+}

@@ -9,6 +9,7 @@ export const PERMISSION_MODULES = [
   'employees',
   'settings',
   'products',
+  'letter_pads',
 ] as const;
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
@@ -113,6 +114,12 @@ export const MODULE_CONFIG: ModuleConfig[] = [
     description: 'Product catalog',
     actions: CRUD,
   },
+  {
+    module: 'letter_pads',
+    label: 'Letter Pads',
+    description: 'Create and manage dynamic letters',
+    actions: CRUD,
+  },
 ];
 
 /** Route prefix → permission module */
@@ -124,6 +131,7 @@ export const ROUTE_MODULE_MAP: { prefix: string; module: PermissionModule }[] = 
   { prefix: '/stock', module: 'stock' },
   { prefix: '/delivery-challans', module: 'delivery_challans' },
   { prefix: '/invoices', module: 'invoices' },
+  { prefix: '/letter-pads', module: 'letter_pads' },
   { prefix: '/reports', module: 'reports' },
   { prefix: '/settings', module: 'settings' },
   { prefix: '/notifications', module: 'dashboard' },

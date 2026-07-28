@@ -503,6 +503,50 @@ export interface Database {
         Update: Partial<AuditLogRow>;
         Relationships: [];
       };
+      letter_pads: {
+        Row: {
+          id: string;
+          company_id: string;
+          title: string;
+          letter_date: string;
+          subject: string | null;
+          content: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          company_id: string;
+          title: string;
+          letter_date?: string;
+          subject?: string | null;
+          content: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          id: string;
+          company_id: string;
+          title: string;
+          letter_date: string;
+          subject: string | null;
+          content: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        }>;
+        Relationships: [
+          {
+            foreignKeyName: "letter_pads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          }
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

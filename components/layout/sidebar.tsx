@@ -10,6 +10,7 @@ import {
   Users,
   Package,
   FileText,
+  FileSignature,
   PieChart,
   LogOut,
   Menu,
@@ -44,6 +45,7 @@ const navigation: {
   { name: "Stock", href: "/stock", icon: Warehouse, module: "stock" },
   { name: "Delivery Challans", href: "/delivery-challans", icon: Truck, module: "delivery_challans" },
   { name: "Invoice", href: "/invoices", icon: FileText, module: "invoices" },
+  { name: "Letter Pad", href: "/letter-pads", icon: FileSignature, module: "letter_pads" },
   { name: "Reports", href: "/reports", icon: PieChart, module: "reports" },
   { name: "Employees", href: "/employees", icon: UsersRound, module: "employees" },
   {
