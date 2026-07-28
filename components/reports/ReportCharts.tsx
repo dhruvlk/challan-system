@@ -21,9 +21,11 @@ const COLORS = ["#4d6ef5", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"
 
 const tooltipStyle = {
   borderRadius: "8px",
-  border: "1px solid oklch(0.91 0.01 264)",
+  border: "1px solid var(--border)",
   boxShadow: "var(--shadow-sm)",
   fontSize: "12px",
+  backgroundColor: "var(--background)",
+  color: "var(--foreground)",
 }
 
 function ChartCard({

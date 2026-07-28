@@ -237,9 +237,11 @@ export default function DashboardClient() {
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
-                        border: "1px solid oklch(0.91 0.01 264)",
+                        border: "1px solid var(--border)",
                         boxShadow: "var(--shadow-sm)",
                         fontSize: "12px",
+                        backgroundColor: "var(--background)",
+                        color: "var(--foreground)",
                       }}
                       formatter={(v) => [`₹${Number(v).toLocaleString("en-IN")}`, "Amount"]}
                     />
