@@ -21,6 +21,7 @@ interface TablePaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange: (size: TablePageSize) => void;
   isLoading?: boolean;
+  itemName?: string;
 }
 
 export function TablePagination({
@@ -30,6 +31,7 @@ export function TablePagination({
   onPageChange,
   onPageSizeChange,
   isLoading = false,
+  itemName = 'records',
 }: TablePaginationProps) {
   if (total <= 0) return null;
 
@@ -41,7 +43,7 @@ export function TablePagination({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-muted-foreground">
-        Showing {start}–{end} of {total.toLocaleString()} records
+        Showing {start} to {end} of {total.toLocaleString()} {itemName}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">

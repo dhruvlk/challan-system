@@ -20,19 +20,20 @@ import { DataTable } from "@/components/tables/DataTable"
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog"
 import { PageHeader } from "@/components/common/PageHeader"
 import { EmptyState } from "@/components/common/EmptyState"
+import { TablePagination } from "@/components/tables/TablePagination"
+import { useServerPagination } from "@/hooks/useServerPagination"
 
 export default function PartiesClient() {
   const { selectedCompany } = useCompany()
   const { can } = usePermissions()
+  const { page, pageSize, setPage, setPageSize, resetPage } = useServerPagination()
   const [parties, setParties] = useState<Customer[]>([])
   const [total, setTotal] = useState(0)
-  const [page, setPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [partyToDelete, setPartyToDelete] = useState<Customer | null>(null)
   const companyId = selectedCompany?.id
-  const pageSize = 10
 
   const loadParties = async (opts?: { silent?: boolean }) => {
     if (!companyId) return
@@ -52,7 +53,7 @@ export default function PartiesClient() {
   useEffect(() => {
     void loadParties({ silent: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, search, page])
+  }, [companyId, search, page, pageSize])
 
   const handlePartyAddedOrUpdated = async (updatedParty: Customer) => {
     if (updatedParty.id && parties.find((p) => p.id === updatedParty.id)) {
@@ -144,26 +145,20 @@ export default function PartiesClient() {
         data={parties}
         columns={columns}
         searchValue={search}
-        onSearchChange={(value) => { setSearch(value); setPage(1) }}
+        onSearchChange={(value) => { setSearch(value); resetPage() }}
         isLoading={isLoading}
         searchPlaceholder="Search by name, GST, mobile, broker..."
       />
 
-      {total > pageSize && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total}
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled={page * pageSize >= total} onClick={() => setPage((p) => p + 1)}>
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <TablePagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        isLoading={isLoading}
+        itemName="Customers"
+      />
 
       <ConfirmationDialog
         open={deleteDialogOpen}
