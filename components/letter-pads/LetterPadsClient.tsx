@@ -62,7 +62,7 @@ export function LetterPadsClient() {
   const fetchLetterPads = useCallback(async () => {
     setIsLoading(true)
     try {
-      let query = supabase
+      const query = supabase
         .from("letter_pads")
         .select("*")
         .eq("company_id", selectedCompany?.id as string)
@@ -77,11 +77,15 @@ export function LetterPadsClient() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedCompany?.id, supabase])
+  }, [selectedCompany, supabase])
 
   useEffect(() => {
     if (selectedCompany) {
-      fetchLetterPads()
+      // Defer execution to avoid React Compiler warning about synchronous setState in effect
+      const timer = setTimeout(() => {
+        fetchLetterPads()
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [selectedCompany, fetchLetterPads])
 
@@ -187,7 +191,7 @@ export function LetterPadsClient() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         <LetterPadActions letter={pad} />
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => router.push(`/letter-pads/${pad.id}/edit`)}>

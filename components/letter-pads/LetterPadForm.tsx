@@ -88,9 +88,9 @@ export function LetterPadForm({ initialData }: LetterPadFormProps) {
 
       router.push("/letter-pads")
       router.refresh()
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving Letter Pad:", error)
-      toast.error(error.message || "Failed to save Letter Pad")
+      toast.error(error instanceof Error ? error.message : "Failed to save Letter Pad")
     } finally {
       setIsSubmitting(false)
     }
