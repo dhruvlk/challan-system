@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Pencil, Trash2, UserCog, UsersRound } from "lucide-react"
 import { useCompany } from "@/components/company-provider"
@@ -46,7 +46,7 @@ export default function EmployeesClient() {
   const [employeeToRemove, setEmployeeToRemove] = useState<Employee | null>(null)
   const pageSize = 10
 
-  const loadEmployees = async () => {
+  const loadEmployees = useCallback(async () => {
     if (!selectedCompany) return
     setIsLoading(true)
     try {
@@ -65,11 +65,11 @@ export default function EmployeesClient() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [selectedCompany, search, page, statusFilter])
 
   useEffect(() => {
     if (isOwner) loadEmployees()
-  }, [selectedCompany, search, page, statusFilter, isOwner])
+  }, [isOwner, loadEmployees])
 
   const confirmRemove = async () => {
     if (!employeeToRemove || !selectedCompany) return
@@ -187,9 +187,8 @@ export default function EmployeesClient() {
             {row.is_active ? "Deactivate" : "Activate"}
           </Button>
           <Button
-            variant="ghost"
+            variant="destructive"
             size="icon"
-            className="text-destructive"
             onClick={() => {
               setEmployeeToRemove(row)
               setDeleteDialogOpen(true)

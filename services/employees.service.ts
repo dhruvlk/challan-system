@@ -73,10 +73,16 @@ export async function getEmployeesPaginated(
   });
   if (search.trim()) params.set('search', search.trim());
 
+  params.set('t', Date.now().toString());
+
   const response = await fetch(`/api/employees?${params.toString()}`, {
     method: 'GET',
     credentials: 'include',
     cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+    },
   });
 
   if (!response.ok) {
