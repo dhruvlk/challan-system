@@ -119,7 +119,7 @@ export default function PartiesClient() {
             />
           </PermissionGate>
           <PermissionGate module="customers" action="delete">
-            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setPartyToDelete(p); setDeleteDialogOpen(true) }}>
+            <Button variant="destructive" size="icon" onClick={() => { setPartyToDelete(p); setDeleteDialogOpen(true) }}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </PermissionGate>

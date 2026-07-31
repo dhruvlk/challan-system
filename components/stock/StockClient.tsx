@@ -177,9 +177,8 @@ export default function StockClient() {
           </PermissionGate>
           <PermissionGate module="stock" action="delete">
             <Button
-              variant="ghost"
+              variant="destructive"
               size="icon"
-              className="text-destructive"
               onClick={() => {
                 setStockToDelete(row)
                 setDeleteOpen(true)

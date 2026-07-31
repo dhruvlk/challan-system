@@ -242,10 +242,9 @@ export default function DeliveryChallansClient() {
           </PermissionGate>
           <PermissionGate module="delivery_challans" action="delete">
             <Button
-              variant="ghost"
+              variant="destructive"
               size="icon"
               title="Delete"
-              className="text-destructive"
               onClick={() => {
                 setToDelete(row)
                 setDeleteDialogOpen(true)

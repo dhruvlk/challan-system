@@ -245,7 +245,7 @@ export default function ChallansClient() {
             </Button>
           </PermissionGate>
           <PermissionGate module="invoices" action="delete">
-            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { setChallanToDelete(c); setDeleteDialogOpen(true) }}>
+            <Button variant="destructive" size="icon" onClick={() => { setChallanToDelete(c); setDeleteDialogOpen(true) }}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </PermissionGate>
