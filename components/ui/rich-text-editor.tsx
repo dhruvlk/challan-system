@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -16,6 +17,7 @@ import {
   AlignJustify
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import React from 'react'
 
 interface RichTextEditorProps {
   value: string
@@ -114,22 +116,25 @@ const MenuBar = ({ editor }: { editor: any }) => {
 }
 
 export function RichTextEditor({ value, onChange, disabled, className }: RichTextEditorProps) {
+  const extensions = useMemo(() => [
+    StarterKit.configure({
+      heading: false, // disable headings for simple letter pad
+      codeBlock: false,
+      horizontalRule: false,
+      dropcursor: false,
+      strike: false,
+      code: false,
+      blockquote: false,
+    }),
+    Underline,
+    TextAlign.configure({
+      types: ['heading', 'paragraph'],
+    }),
+  ], [])
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: false, // disable headings for simple letter pad
-        codeBlock: false,
-        horizontalRule: false,
-        dropcursor: false,
-        strike: false,
-        code: false,
-        blockquote: false,
-      }),
-      Underline,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-    ],
+    extensions,
+    immediatelyRender: false,
     content: value,
     editable: !disabled,
     onUpdate: ({ editor }) => {

@@ -123,22 +123,24 @@ export function LetterPadForm({ initialData }: LetterPadFormProps) {
               <div className="space-y-2">
                 <Label htmlFor="letter_date">Letter Date *</Label>
                 <Popover>
-                  <PopoverTrigger>
-                    <Button
-                      type="button"
-                      variant={"outline"}
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !form.watch("letter_date") && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {form.watch("letter_date") ? (
-                        format(form.watch("letter_date"), "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                    </Button>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant={"outline"}
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !form.watch("letter_date") && "text-muted-foreground"
+                        )}
+                      />
+                    }
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {form.watch("letter_date") ? (
+                      format(form.watch("letter_date"), "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
