@@ -180,8 +180,8 @@ export default function EmployeesClient() {
             }
           />
           <Button
-            variant="ghost"
-            size="sm"
+            variant={row.is_active ? "destructive" : "default"}
+            size="lg"
             onClick={() => toggleStatus(row)}
           >
             {row.is_active ? "Deactivate" : "Activate"}
