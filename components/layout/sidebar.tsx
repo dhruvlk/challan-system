@@ -18,9 +18,6 @@ import {
   Warehouse,
   UsersRound,
   Settings,
-  CreditCard,
-  Wallet,
-  ClipboardList,
   type LucideIcon,
 } from "lucide-react"
 import { FEATURES } from "@/lib/features"
@@ -58,9 +55,6 @@ const navigation: {
     feature: "companySettingsModule",
     module: "settings",
   },
-  { name: "Payments", href: "/payments", icon: CreditCard, module: "payments" },
-  { name: "Expenses", href: "/expenses", icon: Wallet, module: "expenses" },
-  { name: "Audit Log", href: "/audit-log", icon: ClipboardList, module: "audit_log" },
 ]
 
 interface SidebarContentProps {
