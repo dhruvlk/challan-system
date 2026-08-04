@@ -188,7 +188,7 @@ export default function EmployeesClient() {
           </Button>
           <Button
             variant="destructive"
-            size="icon"
+            size="lg"
             onClick={() => {
               setEmployeeToRemove(row)
               setDeleteDialogOpen(true)
