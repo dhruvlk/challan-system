@@ -378,3 +378,62 @@ export interface LetterPadFilters {
   dateTo?: string;
   sort?: TableSort;
 }
+
+// === New Module Types (Payments, Expenses, Audit Log) ===
+
+export type PaymentMethod = 'Cash' | 'UPI' | 'Bank Transfer' | 'Cheque' | 'NEFT' | 'RTGS';
+export type PaymentStatus = 'Paid' | 'Partial' | 'Pending';
+
+export interface Payment {
+  id: string;
+  company_id: string;
+  customer_id: string;
+  invoice_number?: string;
+  payment_date: string;
+  payment_method: PaymentMethod;
+  amount_received: number;
+  remaining_balance?: number;
+  reference_number?: string;
+  notes?: string;
+  status: PaymentStatus;
+  created_at: string;
+  updated_at?: string;
+  customer?: Customer; // For UI mapping
+}
+
+export type ExpenseCategory = 'Office Expense' | 'Transport' | 'Labour' | 'Electricity' | 'Fuel' | 'Stationery' | 'Maintenance' | 'Internet' | 'Salary' | 'Other';
+
+export interface Expense {
+  id: string;
+  company_id: string;
+  expense_date: string;
+  category: ExpenseCategory;
+  amount: number;
+  paid_to?: string;
+  payment_method: PaymentMethod;
+  description?: string;
+  bill_number?: string;
+  remarks?: string;
+  status: 'Paid' | 'Pending';
+  created_at: string;
+  updated_at?: string;
+}
+
+export type AuditActionType = 'Create' | 'Edit' | 'Delete' | 'Login' | 'Logout';
+
+export interface AuditLogEntry {
+  id: string;
+  company_id: string;
+  module: string;
+  action_type: AuditActionType;
+  record_name: string;
+  performed_by: string;
+  date: string;
+  time: string;
+  old_value?: unknown;
+  new_value?: unknown;
+  ip_address?: string;
+  device?: string;
+  browser?: string;
+  created_at: string;
+}

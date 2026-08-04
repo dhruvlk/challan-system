@@ -10,6 +10,9 @@ export const PERMISSION_MODULES = [
   'settings',
   'products',
   'letter_pads',
+  'payments',
+  'expenses',
+  'audit_log',
 ] as const;
 
 export type PermissionModule = (typeof PERMISSION_MODULES)[number];
@@ -120,6 +123,27 @@ export const MODULE_CONFIG: ModuleConfig[] = [
     description: 'Create and manage dynamic letters',
     actions: CRUD,
   },
+  {
+    module: 'payments',
+    label: 'Payments',
+    description: 'Track received payments and ledgers',
+    actions: CRUD,
+  },
+  {
+    module: 'expenses',
+    label: 'Expenses',
+    description: 'Manage company expenses',
+    actions: CRUD,
+  },
+  {
+    module: 'audit_log',
+    label: 'Audit Log',
+    description: 'View system activity logs',
+    actions: [
+      { key: 'view', label: 'View' },
+      { key: 'export', label: 'Export' },
+    ],
+  },
 ];
 
 /** Route prefix → permission module */
@@ -135,6 +159,9 @@ export const ROUTE_MODULE_MAP: { prefix: string; module: PermissionModule }[] = 
   { prefix: '/reports', module: 'reports' },
   { prefix: '/settings', module: 'settings' },
   { prefix: '/notifications', module: 'dashboard' },
+  { prefix: '/payments', module: 'payments' },
+  { prefix: '/expenses', module: 'expenses' },
+  { prefix: '/audit-log', module: 'audit_log' },
   { prefix: '/', module: 'dashboard' },
 ];
 
