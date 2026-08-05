@@ -244,7 +244,6 @@ export default function StockClient() {
             title="Low / Out"
             value={`${summary?.lowStockCount ?? 0} / ${summary?.outOfStockCount ?? 0}`}
             icon={TriangleAlert}
-            iconClassName="bg-amber-50 ring-amber-200"
             isLoading={isLoading}
           />
         </motion.div>
