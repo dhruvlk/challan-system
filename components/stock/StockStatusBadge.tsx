@@ -6,15 +6,15 @@ import type { Stock, StockStatus } from "@/types"
 import { getStockStatus } from "@/types"
 
 const STATUS_STYLES: Record<StockStatus, string> = {
-  Available: "border-emerald-200/80 bg-emerald-50 text-emerald-800",
-  "Low Stock": "border-amber-200/80 bg-amber-50 text-amber-900",
-  "Out Of Stock": "border-rose-200/80 bg-rose-50 text-rose-800",
+  Available: "bg-green-100 text-green-700 border-green-200",
+  "Low Stock": "bg-red-100 text-red-600 border-red-200",
+  "Out Of Stock": "bg-red-300 text-red-700 border-red-400",
 }
 
 const STATUS_DOT: Record<StockStatus, string> = {
-  Available: "bg-emerald-500",
-  "Low Stock": "bg-amber-500",
-  "Out Of Stock": "bg-rose-500",
+  Available: "bg-green-500",
+  "Low Stock": "bg-red-500",
+  "Out Of Stock": "bg-red-700",
 }
 
 export function StockStatusBadge({
