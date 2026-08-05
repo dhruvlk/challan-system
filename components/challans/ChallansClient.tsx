@@ -159,8 +159,8 @@ export default function ChallansClient() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Draft": return "bg-muted text-muted-foreground"
-      case "Pending": return "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-      case "Delivered": return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+      case "Pending": return "bg-amber-500/10 text-amber-700"
+      case "Delivered": return "bg-emerald-500/10 text-emerald-700"
       case "Returned": return "bg-primary/10 text-primary"
       case "Cancelled": return "bg-destructive/10 text-destructive"
       default: return "bg-muted text-muted-foreground"
@@ -210,7 +210,7 @@ export default function ChallansClient() {
       cell: (c: Challan) => {
         const remaining = getRemainingBalance(getChallanTotal(c), getAmountReceived(c))
         return (
-          <span className={remaining > 0 ? "font-medium text-amber-700 dark:text-amber-400" : "text-muted-foreground"}>
+          <span className={remaining > 0 ? "font-medium text-amber-700" : "text-muted-foreground"}>
             {formatCurrency(remaining)}
           </span>
         )

@@ -1,6 +1,5 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { useCompany } from "@/components/company-provider"
 import { Button } from "@/components/ui/button"
 import {
@@ -9,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Moon, Sun, Building2, Check } from "lucide-react"
+import { Building2, Check } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { useIsClient } from "@/hooks/useIsClient"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,13 +16,10 @@ import { NotificationBell } from "@/components/notifications/NotificationBell"
 import { cn } from "@/lib/utils"
 
 export function Header() {
-  const { setTheme, resolvedTheme } = useTheme()
   const { selectedCompany, companies, setSelectedCompany } = useCompany()
   const { user } = useAuth()
   const isClient = useIsClient()
   const hasMultipleCompanies = companies.length > 1
-
-  const isDark = isClient && resolvedTheme === "dark"
 
   const companyLabel = (
     <>
@@ -69,22 +65,6 @@ export function Header() {
       )}
 
       <NotificationBell />
-
-      <button
-        type="button"
-        onClick={() => setTheme(isDark ? "light" : "dark")}
-        className="relative flex h-10 w-[3.75rem] items-center rounded-full border border-border/60 bg-card p-0.5 shadow-xs transition-colors"
-        aria-label="Toggle theme"
-      >
-        <span
-          className={cn(
-            "absolute h-7 w-7 rounded-full bg-primary shadow-xs transition-transform duration-200",
-            isDark ? "translate-x-[1.65rem]" : "translate-x-0.5"
-          )}
-        />
-        <Sun className={cn("relative z-10 ml-1.5 h-3.5 w-3.5", !isDark ? "text-primary-foreground" : "text-muted-foreground")} />
-        <Moon className={cn("relative z-10 ml-auto mr-1.5 h-3.5 w-3.5", isDark ? "text-primary-foreground" : "text-muted-foreground")} />
-      </button>
 
       {user && (
         <div className="flex items-center gap-2.5 rounded-full border border-border/60 bg-card py-1 pl-1 pr-3 shadow-xs">

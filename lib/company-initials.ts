@@ -6,39 +6,39 @@ export type CompanyAvatarPalette = {
 
 const AVATAR_PALETTES: CompanyAvatarPalette[] = [
   {
-    background: 'bg-slate-100 dark:bg-slate-800/55',
-    text: 'text-slate-700 dark:text-slate-200',
-    border: 'border-slate-200/90 dark:border-slate-700/55',
+    background: 'bg-slate-100',
+    text: 'text-slate-700',
+    border: 'border-slate-200/90',
   },
   {
-    background: 'bg-indigo-50 dark:bg-indigo-950/40',
-    text: 'text-indigo-700 dark:text-indigo-200',
-    border: 'border-indigo-200/80 dark:border-indigo-800/50',
+    background: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    border: 'border-indigo-200/80',
   },
   {
-    background: 'bg-blue-50 dark:bg-blue-950/40',
-    text: 'text-blue-700 dark:text-blue-200',
-    border: 'border-blue-200/80 dark:border-blue-800/50',
+    background: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200/80',
   },
   {
-    background: 'bg-emerald-50 dark:bg-emerald-950/40',
-    text: 'text-emerald-700 dark:text-emerald-200',
-    border: 'border-emerald-200/80 dark:border-emerald-800/50',
+    background: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200/80',
   },
   {
-    background: 'bg-amber-50 dark:bg-amber-950/35',
-    text: 'text-amber-800 dark:text-amber-200',
-    border: 'border-amber-200/80 dark:border-amber-800/45',
+    background: 'bg-amber-50',
+    text: 'text-amber-800',
+    border: 'border-amber-200/80',
   },
   {
-    background: 'bg-rose-50 dark:bg-rose-950/40',
-    text: 'text-rose-700 dark:text-rose-200',
-    border: 'border-rose-200/80 dark:border-rose-800/50',
+    background: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200/80',
   },
   {
-    background: 'bg-zinc-100 dark:bg-zinc-800/55',
-    text: 'text-zinc-700 dark:text-zinc-200',
-    border: 'border-zinc-200/90 dark:border-zinc-700/55',
+    background: 'bg-zinc-100',
+    text: 'text-zinc-700',
+    border: 'border-zinc-200/90',
   },
 ];
 

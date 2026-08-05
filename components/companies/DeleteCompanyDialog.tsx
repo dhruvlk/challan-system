@@ -149,7 +149,7 @@ export function DeleteCompanyDialog({
         </DialogHeader>
 
         {!isChecking && hasData && (
-          <div className="rounded-md bg-amber-500/10 p-3 text-sm text-amber-600 dark:text-amber-400">
+          <div className="rounded-md bg-amber-500/10 p-3 text-sm text-amber-600">
             To prevent accidental data loss and maintain referential integrity, please archive the company instead. It will be hidden from normal lists.
           </div>
         )}

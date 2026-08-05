@@ -145,9 +145,9 @@ export default function DeliveryChallansClient() {
       case "Draft":
         return "bg-muted text-muted-foreground"
       case "Pending":
-        return "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+        return "bg-amber-500/10 text-amber-700"
       case "Delivered":
-        return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+        return "bg-emerald-500/10 text-emerald-700"
       default:
         return "bg-muted text-muted-foreground"
     }

@@ -142,7 +142,7 @@ export function RichTextEditor({ value, onChange, disabled, className }: RichTex
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[300px] p-4',
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[300px] p-4',
       },
     },
   })
