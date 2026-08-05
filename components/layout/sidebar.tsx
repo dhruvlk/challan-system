@@ -94,11 +94,11 @@ function SidebarContent({
           />
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-semibold leading-tight tracking-tight text-sidebar-foreground">
+              <p className="truncate text-[18px] font-semibold leading-tight tracking-tight text-sidebar-foreground">
                 {selectedCompany?.name ?? "Select company"}
               </p>
               {selectedCompany?.gst_number ? (
-                <p className="mt-1 truncate text-xs text-muted-foreground">
+                <p className="mt-1 truncate text-[13px] text-muted-foreground">
                   GST {selectedCompany.gst_number}
                 </p>
               ) : (

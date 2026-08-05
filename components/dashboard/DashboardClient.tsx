@@ -35,7 +35,7 @@ export default function DashboardClient() {
   const firstName = user?.name?.split(" ")[0] || "Admin"
   const hour = new Date().getHours()
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
-  const currentDate = format(new Date(), "EEEE, MMMM d, yyyy")
+  const currentDate = format(new Date(), "EEEE, d MMMM  yyyy")
 
   useEffect(() => {
     let cancelled = false
