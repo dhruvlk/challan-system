@@ -275,8 +275,8 @@ export default function DeliveryChallansClient() {
       />
 
       <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="dc-filter-search" className="text-xs font-medium text-muted-foreground">
                 Search
@@ -395,19 +395,19 @@ export default function DeliveryChallansClient() {
               />
             </div>
           </div>
-
-          <DataTable columns={columns} data={challans} isLoading={isLoading} hideSearch />
-
-          <TablePagination
-            page={page}
-            pageSize={pageSize}
-            total={total}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
-            isLoading={isLoading}
-          />
         </CardContent>
       </Card>
+      <DataTable columns={columns} data={challans} isLoading={isLoading} hideSearch />
+
+      <TablePagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        isLoading={isLoading}
+      />
+
 
       <ConfirmationDialog
         open={deleteDialogOpen}
